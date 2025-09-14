@@ -138,23 +138,19 @@
 <!-- Firebase v10 CDN -->
 <script type="module">
   const firebaseConfig = {
-    apiKey: "AIzaSyCe-bTChoBYZzzX_F9Cwf6tZXGIxzS4Qf8",
-    authDomain: "quizz-capitales.firebaseapp.com",
-    databaseURL: "https://quizz-capitales-default-rtdb.europe-west1.firebasedatabase.app/",
-    projectId: "quizz-capitales",
-    storageBucket: "quizz-capitales.appspot.com", // ⬅️ optionnel mais plus correct
-    messagingSenderId: "657917175552",
-    appId: "1:657917175552:web:7f35b3595d97919f2835e5"
-    // measurementId inutile ici
-  };
+  apiKey: "AIzaSyCe-bTChoBYZzzX_F9Cwf6tZXGIxzS4Qf8",
+  authDomain: "quizz-capitales.firebaseapp.com",
+  databaseURL: "https://quizz-capitales-default-rtdb.europe-west1.firebasedatabase.app", 
+  projectId: "quizz-capitales",
+  storageBucket: "quizz-capitales.appspot.com",
+  messagingSenderId: "657917175552",
+  appId: "1:657917175552:web:7f35b3595d97919f2835e5"
+};
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app); // ✅
 
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-  import { getDatabase, ref, onValue, set, update, get, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app); 
-  // 💡 Alternative si tu n'arrives pas à mettre databaseURL dans la config :
-  // const db = getDatabase(app, "https://quizz-capitales-default-rtdb.europe-west1.firebasedatabase.app");
 
   // ======= Utilitaires =======
   const $ = sel => document.querySelector(sel);

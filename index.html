@@ -28,7 +28,13 @@
     .mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .mc-btn{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0d1424;cursor:pointer}
     .mc-btn:hover{transform:translateY(-1px)}
-    .mc-btn.selected{background:#1d2a48;border-color:var(--primary);font-weight:600}
+    /* Surbrillance bien visible au clic */
+    .mc-btn.selected{
+      background:linear-gradient(180deg,rgba(34,197,94,.18),rgba(34,197,94,.12));
+      border-color:rgba(34,197,94,.8);
+      box-shadow:0 0 0 2px rgba(34,197,94,.25), 0 6px 18px rgba(34,197,94,.2) inset;
+      font-weight:600;
+    }
     .board{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .panel{padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
     .timer{font-variant-numeric:tabular-nums;font-size:clamp(24px,5vw,42px);font-weight:800}
@@ -117,8 +123,8 @@
       </div>
 
       <div class="footer">
-        <div class="small muted">Astuce: accents/majuscules ignorés. En QCM, cliquez sur la capitale.</div>
-        <div class="small">Score: <b id="myScore">0</b> — Adversaire: <b id="opScore">0</b></div>
+        <div class="small muted">Scores masqués jusqu’aux résultats 🎁</div>
+        <div class="small muted">Astuce: accents/majuscules ignorés.</div>
       </div>
       <div id="roundStatus" class="small muted" style="margin-top:6px"></div>
     </div>
@@ -312,9 +318,6 @@
       $('#qIndex').textContent = Math.min(idx+1, r.count);
       const pair = CAPITALS[r.order[idx]] || [];
       $('#country').textContent = pair[0] || '';
-      const others = Object.entries(r.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
-      $('#opScore').textContent = others[0]?.score ?? 0;
-      $('#myScore').textContent = r.players?.[ME.id]?.score ?? 0;
 
       // Remplir QCM + reset visuel
       if(ROOM_MODE==='mc' && r.order[idx]!==undefined){
@@ -336,13 +339,12 @@
     $('#submitBtn').onclick = submitAnswer;
     $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
 
-    // QCM : surbrillance et lock
+    // QCM : surbrillance et lock (reste visible jusqu’à la prochaine question)
     document.querySelectorAll('.mc-btn').forEach(btn=>{
       btn.onclick = ()=>{
         document.querySelectorAll('.mc-btn').forEach(b=>b.classList.remove('selected'));
         btn.classList.add('selected');
         submitAnswer(btn.textContent);
-        // désactive uniquement le bouton cliqué (les autres restent actifs mais la transaction ignore les doubles)
         btn.disabled = true;
       };
     });
@@ -397,7 +399,7 @@
     const others = Object.entries(room.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
     const op = others[0]||{name:'Adversaire',score:0,history:[]};
 
-    // Mettre les pseudos dans les entêtes du tableau
+    // Entêtes personnalisées
     $('#colMe').textContent = me?.name || 'Moi';
     $('#colOp').textContent = op?.name || 'Adversaire';
 
@@ -414,7 +416,7 @@
       cur.op = h; byIdx.set(h.idx, cur);
     }
 
-    const tbody = $('#detailTable tbody'); tbody.innerHTML='';
+    const tbody = document.querySelector('#detailTable tbody'); tbody.innerHTML='';
     room.order.forEach((qIdx, i)=>{
       const rec = byIdx.get(qIdx) || {country: CAPITALS[qIdx][0], correct: CAPITALS[qIdx][1], me:null, op:null};
       const meTxt = rec.me ? `${rec.me.answer||'∅'} ${rec.me.ok?'<span class="good">✅</span>':'<span class="badx">❌</span>'}` : '—';
@@ -426,8 +428,8 @@
   }
 
   // UX
-  $('#playerName').value = localStorage.getItem('lastName')||'';
-  $('#playerName').addEventListener('change',()=>localStorage.setItem('lastName',$('#playerName').value));
+  document.getElementById('playerName').value = localStorage.getItem('lastName')||'';
+  document.getElementById('playerName').addEventListener('change',()=>localStorage.setItem('lastName',document.getElementById('playerName').value));
 </script>
 </body>
 </html>

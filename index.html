@@ -1,17 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!--
-    ▶️ Déploiement ultra-rapide sur GitHub Pages
-    1) Crée un repo public sur GitHub (ex: quiz-capitales-duel)
-    2) Renomme le fichier en index.html, commit & push sur la branche main
-    3) Settings → Pages → Build and deployment → Source: Deploy from a branch
-       - Branch: main, Folder: /root
-    4) Attends ~1 minute → https://<ton-pseudo>.github.io/quiz-capitales-duel/
-    5) Sur la page, colle ta config Firebase dans le bloc firebaseConfig.
-
-    GitHub Pages ne fait que servir le fichier; la synchro temps réel passe par Firebase Realtime Database via CDN.
-  -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz Capitale — Duel synchronisé</title>
@@ -148,17 +137,16 @@
 
 <!-- Firebase v10 CDN -->
 <script type="module">
-  /******************** Firebase — A RENSEIGNER ********************/
-  // Remplace ce bloc par la configuration Web de TON projet Firebase
   const firebaseConfig = {
-    apiKey: "PASTE_API_KEY",
-    authDomain: "PASTE_PROJECT.firebaseapp.com",
-    databaseURL: "https://PASTE_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "PASTE_PROJECT",
-    storageBucket: "PASTE_PROJECT.appspot.com",
-    messagingSenderId: "PASTE_SENDER_ID",
-    appId: "PASTE_APP_ID"
-  };
+  apiKey: "AIzaSyCe-bTChoBYZzzX_F9Cwf6tZXGIxzS4Qf8",
+  authDomain: "quizz-capitales.firebaseapp.com",
+  projectId: "quizz-capitales",
+  storageBucket: "quizz-capitales.firebasestorage.app",
+  messagingSenderId: "657917175552",
+  appId: "1:657917175552:web:7f35b3595d97919f2835e5",
+  measurementId: "G-VBYLYKHBPN"
+};
+
   /*****************************************************************/
 
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';

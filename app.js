@@ -100,7 +100,7 @@ $('#createBtn').onclick = async () => {
   const mode = $('#modeSelect').value; ROOM_MODE = mode;
   const countSel = $('#questionCount').value;
   const count = countSel==='all' ? CAPITALS.length : parseInt(countSel,10);
-  const seed = Math.abs([...id].reduce((a,c)=>a*33+c.charCodeAt(0),7))%1000000;
+  const seed = (Date.now() ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0;
   const order = seededShuffle([...Array(CAPITALS.length).keys()], seed).slice(0,count);
 
   ROOM = id;

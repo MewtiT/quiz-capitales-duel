@@ -28,6 +28,7 @@
     .mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .mc-btn{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0d1424;cursor:pointer}
     .mc-btn:hover{transform:translateY(-1px)}
+    .mc-btn.selected{background:#1d2a48;border-color:var(--primary);font-weight:600}
     .board{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .panel{padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
     .timer{font-variant-numeric:tabular-nums;font-size:clamp(24px,5vw,42px);font-weight:800}
@@ -48,6 +49,8 @@
 <div class="app">
   <div class="card">
     <h1>🌍 Quiz Capitale — Duel synchronisé</h1>
+
+    <!-- Setup -->
     <div id="setup" class="grid">
       <div class="row">
         <input id="playerName" placeholder="Ton pseudo (ex: Thibaud)" />
@@ -71,6 +74,8 @@
       </div>
       <p class="small muted">1) Créez/entrez le <b>code salon</b>. 2) Choisissez le <b>mode</b>. 3) Commencez ▶ — mêmes questions et enchaînement synchronisé.</p>
       <div class="sep"></div>
+
+      <!-- Lobby -->
       <div id="lobby" class="hidden">
         <div class="row" style="justify-content:space-between;align-items:center">
           <div>
@@ -87,6 +92,7 @@
       </div>
     </div>
 
+    <!-- Game -->
     <div id="game" class="hidden">
       <div class="row" style="justify-content:space-between;align-items:center">
         <div class="pill">Salon <span id="gameRoom" class="code"></span></div>
@@ -98,7 +104,7 @@
       </div>
       <div class="center"><div class="country" id="country"></div></div>
 
-      <!-- Zone réponses -->
+      <!-- Zones de réponse -->
       <div id="textZone" class="answers row center">
         <input id="answer" placeholder="Ta réponse" autocomplete="off" />
         <button id="submitBtn" class="primary">Valider</button>
@@ -117,6 +123,7 @@
       <div id="roundStatus" class="small muted" style="margin-top:6px"></div>
     </div>
 
+    <!-- Results -->
     <div id="results" class="hidden">
       <h2>🏁 Résultats</h2>
       <p class="small muted" id="resSubtitle"></p>
@@ -131,7 +138,7 @@
             <thead>
               <tr>
                 <th>#</th><th>Pays</th><th>Capitale</th>
-                <th>Toi</th><th>Adversaire</th>
+                <th id="colMe">Toi</th><th id="colOp">Adversaire</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -147,7 +154,7 @@
 
 <!-- Firebase v10 CDN -->
 <script type="module">
-  // ⚙️ Config Firebase — garde la tienne
+  // ⚙️ Config Firebase (tes valeurs)
   const firebaseConfig = {
     apiKey: "AIzaSyCe-bTChoBYZzzX_F9Cwf6tZXGIxzS4Qf8",
     authDomain: "quizz-capitales.firebaseapp.com",
@@ -229,16 +236,14 @@
   let TIMER = null;
   let ROOM_MODE = 'text'; // 'text' | 'mc'
 
-  // ---- Helpers for MC options (mêmes pour tous via graine) ----
   function mcOptions(orderIndex, seedBase){
-    const idx = orderIndex;
-    const pair = CAPITALS[idx];
+    const pair = CAPITALS[orderIndex];
     const correct = pair[1];
     const allCaps = CAPITALS.map(p=>p[1]);
     const others = allCaps.filter(c => c !== correct);
-    const distract = seededShuffle(others, seedBase*1000 + idx).slice(0,3);
+    const distract = seededShuffle(others, seedBase*1000 + orderIndex).slice(0,3);
     const opts = [correct, ...distract];
-    return seededShuffle(opts, seedBase*5000 + idx); // mélange final
+    return seededShuffle(opts, seedBase*5000 + orderIndex);
   }
 
   // ======= UI events =======
@@ -252,8 +257,7 @@
     const order = seededShuffle([...Array(CAPITALS.length).keys()], seed).slice(0,count);
 
     ROOM = id;
-    const roomRef = ref(db, 'rooms/'+ROOM);
-    await set(roomRef, {
+    await set(ref(db, 'rooms/'+ROOM), {
       createdAt: Date.now(),
       seed, count, order, mode,
       started: false, index: 0,
@@ -295,14 +299,12 @@
     $('#game').classList.remove('hidden');
     $('#gameRoom').textContent = ROOM; $('#roundStatus').textContent='';
 
-    // Affiche bon mode
     onValue(ref(db, 'rooms/'+ROOM+'/mode'), (s)=> {
       ROOM_MODE = s.val() || 'text';
       if(ROOM_MODE==='mc'){ $('#textZone').classList.add('hidden'); $('#mcZone').classList.remove('hidden'); }
       else { $('#mcZone').classList.add('hidden'); $('#textZone').classList.remove('hidden'); }
     });
 
-    // État de la partie
     onValue(ref(db, 'rooms/'+ROOM), s=>{
       const r = s.val(); if(!r) return;
       const idx = r.index;
@@ -314,10 +316,14 @@
       $('#opScore').textContent = others[0]?.score ?? 0;
       $('#myScore').textContent = r.players?.[ME.id]?.score ?? 0;
 
-      // Remplir QCM si besoin
+      // Remplir QCM + reset visuel
       if(ROOM_MODE==='mc' && r.order[idx]!==undefined){
         const opts = mcOptions(r.order[idx], r.seed);
-        document.querySelectorAll('.mc-btn').forEach((b,i)=>{ b.textContent = opts[i] || ''; b.disabled = false; });
+        document.querySelectorAll('.mc-btn').forEach((b,i)=>{ 
+          b.textContent = opts[i] || ''; 
+          b.disabled = false; 
+          b.classList.remove('selected'); // reset sélection
+        });
       }
 
       if(idx>=r.count){ showResults(r); }
@@ -329,13 +335,21 @@
     // Handlers
     $('#submitBtn').onclick = submitAnswer;
     $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
+
+    // QCM : surbrillance et lock
     document.querySelectorAll('.mc-btn').forEach(btn=>{
-      btn.onclick = ()=>{ submitAnswer(btn.textContent); btn.disabled = true; };
+      btn.onclick = ()=>{
+        document.querySelectorAll('.mc-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        submitAnswer(btn.textContent);
+        // désactive uniquement le bouton cliqué (les autres restent actifs mais la transaction ignore les doubles)
+        btn.disabled = true;
+      };
     });
   }
 
   function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
-  function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); }
+  function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); b.disabled=false; }); }
 
   async function submitAnswer(valueFromMC){
     const ans = (valueFromMC!==undefined) ? valueFromMC : $('#answer').value.trim();
@@ -352,7 +366,7 @@
       const qIdx = room.order[idx];
       const [country, cap] = CAPITALS[qIdx];
       const me = room.players?.[ME.id] || { name: ME.name, score:0, answered:false, last:"", history: [] };
-      if(me.answered) return room; // déjà répondu
+      if(me.answered) return room;
 
       const expected = norm(cap);
       const gotNorm = norm(ALIASES.get(norm(raw)) || raw);
@@ -361,13 +375,11 @@
       me.answered = true; me.last = raw;
       if(ok) me.score = (me.score||0) + 1;
 
-      // Historique détaillé
       me.history = me.history || [];
       me.history.push({ idx:qIdx, country, correct:cap, answer: raw, ok });
 
       room.players[ME.id] = me;
 
-      // Passage à la suite quand tout le monde a répondu
       const allAnswered = Object.values(room.players).every(p=>p.answered);
       if(allAnswered){
         for(const pid of Object.keys(room.players)) room.players[pid].answered=false;
@@ -384,22 +396,24 @@
     const me = room.players?.[ME.id];
     const others = Object.entries(room.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
     const op = others[0]||{name:'Adversaire',score:0,history:[]};
-    $('#resSubtitle').textContent = `Mode: ${room.mode==='mc'?'QCM':'Saisie'} • Total: ${room.count} questions`;
 
+    // Mettre les pseudos dans les entêtes du tableau
+    $('#colMe').textContent = me?.name || 'Moi';
+    $('#colOp').textContent = op?.name || 'Adversaire';
+
+    $('#resSubtitle').textContent = `Mode: ${room.mode==='mc'?'QCM':'Saisie'} • Total: ${room.count} questions`;
     $('#meFinal').innerHTML = `<div class="big">${me?.name||'Moi'}</div><div class="ok" style="font-size:36px;font-weight:800">${me?.score||0} pts</div>`;
     $('#opFinal').innerHTML = `<div class="big">${op.name}</div><div class="ok" style="font-size:36px;font-weight:800">${op.score} pts</div>`;
 
-    // Fusionne l'historique par ordre des questions
     const myH = me?.history||[];
     const opH = op?.history||[];
     const byIdx = new Map();
     for(const h of myH) byIdx.set(h.idx, {country:h.country, correct:h.correct, me:h});
     for(const h of opH){
       const cur = byIdx.get(h.idx) || {country:h.country, correct:h.correct, me:null};
-      cur.op = h;
-      byIdx.set(h.idx, cur);
+      cur.op = h; byIdx.set(h.idx, cur);
     }
-    // ordonner comme room.order
+
     const tbody = $('#detailTable tbody'); tbody.innerHTML='';
     room.order.forEach((qIdx, i)=>{
       const rec = byIdx.get(qIdx) || {country: CAPITALS[qIdx][0], correct: CAPITALS[qIdx][1], me:null, op:null};

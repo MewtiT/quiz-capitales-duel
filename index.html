@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <!--
+    ▶️ Déploiement ultra-rapide sur GitHub Pages
+    1) Crée un repo public sur GitHub (ex: quiz-capitales-duel)
+    2) Renomme le fichier en index.html, commit & push sur la branche main
+    3) Settings → Pages → Build and deployment → Source: Deploy from a branch
+       - Branch: main, Folder: /root
+    4) Attends ~1 minute → https://<ton-pseudo>.github.io/quiz-capitales-duel/
+    5) Sur la page, colle ta config Firebase dans le bloc firebaseConfig.
+
+    GitHub Pages ne fait que servir le fichier; la synchro temps réel passe par Firebase Realtime Database via CDN.
+  -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Capitale — Duel synchronisé</title>
+  <style>
+    :root{
+      --bg:#0f172a;--card:#111827;--muted:#94a3b8;--text:#e5e7eb;--accent:#22c55e;--danger:#ef4444;--primary:#3b82f6;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,Arial,sans-serif;background:radial-gradient(1200px 600px at 10% 10%,#1e293b 0,#0b1222 60%,#050915 100%);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .app{width:min(1024px,100%);}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);backdrop-filter: blur(6px);border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.4);padding:20px}
+    h1{font-size:clamp(22px,3.6vw,34px);margin:0 0 14px;letter-spacing:.3px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    input,select,button{border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0b1220;color:var(--text);padding:12px 14px;font-size:16px}
+    input,select{flex:1;min-width:180px}
+    button{cursor:pointer;transition:.2s;background:linear-gradient(180deg,#0f172a,#0b1220)}
+    button.primary{border-color:rgba(59,130,246,.5);box-shadow:inset 0 0 0 1px rgba(59,130,246,.35)}
+    button.primary:hover{transform:translateY(-1px);background:#0f1a30}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:14px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .ok{color:var(--accent)}
+    .bad{color:var(--danger)}
+    .primaryText{color:#cde1ff}
+    .center{display:flex;align-items:center;justify-content:center}
+    .big{font-size:clamp(18px,3vw,22px)}
+    .question{font-size:clamp(20px,4vw,28px);font-weight:700;margin:10px 0 6px}
+    .country{font-size:clamp(28px,6vw,40px)}
+    .answers{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    .answers input{min-width:260px;flex:2}
+    .board{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .panel{padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+    .timer{font-variant-numeric:tabular-nums;font-size:clamp(24px,5vw,42px);font-weight:800}
+    .sep{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
+    .small{font-size:13px}
+    .footer{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px}
+    .hidden{display:none !important}
+    .tag{font-size:12px;color:#cbd5e1}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+    .linklike{color:#93c5fd;text-decoration:underline;cursor:pointer}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <h1>🌍 Quiz Capitale — Duel synchronisé</h1>
+    <div id="setup" class="grid">
+      <div class="row">
+        <input id="playerName" placeholder="Ton pseudo (ex: Thibaud)" />
+        <input id="roomId" placeholder="Code salon (ex: RIO974)" />
+      </div>
+      <div class="row">
+        <select id="questionCount">
+          <option value="10">10 questions</option>
+          <option value="20">20 questions</option>
+          <option value="40">40 questions</option>
+          <option value="60">60 questions</option>
+          <option value="100">100 questions</option>
+          <option value="all">Toutes les capitales</option>
+        </select>
+        <button id="createBtn" class="primary">Créer le salon</button>
+        <button id="joinBtn">Rejoindre</button>
+      </div>
+      <p class="small muted">1) L'un crée un <b>code salon</b> (au choix). 2) L'autre saisit le <b>même code</b> et clique Rejoindre. 3) L'hôte appuie sur <b>Commencer</b>. Les questions sont <b>identiques</b> et s'enchaînent <b>en même temps</b>.</p>
+      <details>
+        <summary class="small tag">Configuration Firebase (obligatoire, 2 minutes)</summary>
+        <ol class="small">
+          <li>Crée un projet sur <span class="linklike" onclick="window.open('https://console.firebase.google.com','_blank')">Firebase</span>.</li>
+          <li>Active <b>Realtime Database</b> (mode de test) et copie la <b>config Web</b> du projet.</li>
+          <li>Dans ce fichier, remplace le bloc <span class="code">firebaseConfig = {...}</span> par tes valeurs.</li>
+          <li>Ouvre ce fichier <span class="code">.html</span> dans ton navigateur (double‑clic) et joue !</li>
+        </ol>
+      </details>
+      <div class="sep"></div>
+      <div id="lobby" class="hidden">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <span class="pill">Salon: <span id="lobbyRoom" class="code"></span></span>
+            <span class="pill">Questions: <span id="lobbyCount"></span></span>
+          </div>
+          <div>
+            <button id="startBtn" class="primary">Commencer ▶</button>
+          </div>
+        </div>
+        <div class="board" style="margin-top:10px">
+          <div class="panel">
+            <div class="muted small">Joueurs connectés</div>
+            <ul id="players"></ul>
+          </div>
+          <div class="panel">
+            <div class="muted small">Partage</div>
+            <div class="small">Envoie ce code à ton ami : <b id="shareCode" class="code"></b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="game" class="hidden">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="pill">Salon <span id="gameRoom" class="code"></span></div>
+        <div class="pill">Question <span id="qIndex">1</span>/<span id="qTotal">10</span></div>
+        <div class="pill timer" id="timer">30</div>
+      </div>
+      <div class="center" style="margin:10px 0 6px">
+        <div class="question">Quelle est la capitale de</div>
+      </div>
+      <div class="center">
+        <div class="country" id="country"></div>
+      </div>
+      <div class="answers row center">
+        <input id="answer" placeholder="Ta réponse" autocomplete="off" />
+        <button id="submitBtn" class="primary">Valider</button>
+      </div>
+      <div class="footer">
+        <div class="small muted">Astuce: les accents/majuscules ne comptent pas. "Sao Tome", "São Tomé" = OK.</div>
+        <div class="small">Score: <b id="myScore">0</b> — Adversaire: <b id="opScore">0</b></div>
+      </div>
+      <div id="roundStatus" class="small muted" style="margin-top:6px"></div>
+    </div>
+
+    <div id="results" class="hidden">
+      <h2>🏁 Résultats</h2>
+      <p class="big">Scores finaux</p>
+      <div class="board">
+        <div class="panel"><div id="meFinal"></div></div>
+        <div class="panel"><div id="opFinal"></div></div>
+      </div>
+      <div class="sep"></div>
+      <button onclick="window.location.reload()">Rejouer</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase v10 CDN -->
+<script type="module">
+  /******************** Firebase — A RENSEIGNER ********************/
+  // Remplace ce bloc par la configuration Web de TON projet Firebase
+  const firebaseConfig = {
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PASTE_PROJECT.firebaseapp.com",
+    databaseURL: "https://PASTE_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "PASTE_PROJECT",
+    storageBucket: "PASTE_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID"
+  };
+  /*****************************************************************/
+
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+  import { getDatabase, ref, onValue, set, update, get, child, serverTimestamp, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ======= Utilitaires =======
+  const $ = sel => document.querySelector(sel);
+  const norm = s => (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^a-zA-Z\-\s']/g,'').trim().toLowerCase();
+  const rand = (seed => () => (seed = (seed*9301+49297)%233280, seed/233280));
+  const seededShuffle = (arr, seed) => {
+    const r = rand(seed);
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(r()* (i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+  const code = () => ($('#roomId').value||'').replace(/\W/g,'').toUpperCase();
+  const uid = () => localStorage.getItem('uid') || (localStorage.setItem('uid',crypto.randomUUID()), localStorage.getItem('uid'));
+
+  // ======= Données pays → capitale (liste compacte) =======
+  // Source: Nations list (simplifiée, doublons/variantes usuelles inclus)
+  const CAPITALS = [
+    ["Afghanistan","Kaboul"],["Albanie","Tirana"],["Algérie","Alger"],["Andorre","Andorre-la-Vieille"],["Angola","Luanda"],
+    ["Antigua-et-Barbuda","Saint John's"],["Arabie saoudite","Riyad"],["Argentine","Buenos Aires"],["Arménie","Erevan"],["Australie","Canberra"],
+    ["Autriche","Vienne"],["Azerbaïdjan","Bakou"],["Bahamas","Nassau"],["Bahreïn","Manama"],["Bangladesh","Dacca"],
+    ["Barbade","Bridgetown"],["Belgique","Bruxelles"],["Belize","Belmopan"],["Bénin","Porto-Novo"],["Bhoutan","Thimphou"],
+    ["Biélorussie","Minsk"],["Birmanie (Myanmar)","Naypyidaw"],["Bolivie","Sucre"],["Bosnie-Herzégovine","Sarajevo"],["Botswana","Gaborone"],
+    ["Brésil","Brasília"],["Brunei","Bandar Seri Begawan"],["Bulgarie","Sofia"],["Burkina Faso","Ouagadougou"],["Burundi","Gitega"],
+    ["Cambodge","Phnom Penh"],["Cameroun","Yaoundé"],["Canada","Ottawa"],["Cap-Vert","Praia"],["Centrafrique","Bangui"],
+    ["Chili","Santiago"],["Chine","Pékin"],["Chypre","Nicosie"],["Colombie","Bogotá"],["Comores","Moroni"],
+    ["Congo (RDC)","Kinshasa"],["Congo (République)","Brazzaville"],["Corée du Nord","Pyongyang"],["Corée du Sud","Séoul"],["Costa Rica","San José"],
+    ["Côte d’Ivoire","Yamoussoukro"],["Croatie","Zagreb"],["Cuba","La Havane"],["Danemark","Copenhague"],["Djibouti","Djibouti"],
+    ["Dominique","Roseau"],["Égypte","Le Caire"],["Émirats arabes unis","Abou Dabi"],["Équateur","Quito"],["Érythrée","Asmara"],
+    ["Espagne","Madrid"],["Estonie","Tallinn"],["Eswatini","Mbabane"],["États-Unis","Washington"],["Éthiopie","Addis-Abeba"],
+    ["Fidji","Suva"],["Finlande","Helsinki"],["France","Paris"],["Gabon","Libreville"],["Gambie","Banjul"],
+    ["Géorgie","Tbilissi"],["Ghana","Accra"],["Grèce","Athènes"],["Grenade","Saint George's"],["Guatemala","Guatemala"],
+    ["Guinée","Conakry"],["Guinée-Bissau","Bissau"],["Guinée équatoriale","Malabo"],["Guyana","Georgetown"],["Haïti","Port‑au‑Prince"],
+    ["Honduras","Tegucigalpa"],["Hongrie","Budapest"],["Îles Marshall","Delap-Uliga-Darrit"],["Inde","New Delhi"],["Indonésie","Jakarta"],
+    ["Irak","Bagdad"],["Iran","Téhéran"],["Irlande","Dublin"],["Islande","Reykjavik"],["Israël","Jérusalem"],
+    ["Italie","Rome"],["Jamaïque","Kingston"],["Japon","Tokyo"],["Jordanie","Amman"],["Kazakhstan","Astana"],
+    ["Kenya","Nairobi"],["Kirghizistan","Bichkek"],["Kiribati","Tarawa-Sud"],["Kosovo","Pristina"],["Koweït","Koweït"],
+    ["Laos","Vientiane"],["Lesotho","Maseru"],["Lettonie","Riga"],["Liban","Beyrouth"],["Libéria","Monrovia"],
+    ["Libye","Tripoli"],["Liechtenstein","Vaduz"],["Lituanie","Vilnius"],["Luxembourg","Luxembourg"],["Macédoine du Nord","Skopje"],
+    ["Madagascar","Antananarivo"],["Malaisie","Kuala Lumpur"],["Malawi","Lilongwe"],["Maldives","Malé"],["Mali","Bamako"],
+    ["Malte","La Valette"],["Maroc","Rabat"],["Maurice","Port-Louis"],["Mauritanie","Nouakchott"],["Mexique","Mexico"],
+    ["Micronésie","Palikir"],["Moldavie","Chisinau"],["Monaco","Monaco"],["Mongolie","Oulan-Bator"],["Monténégro","Podgorica"],
+    ["Mozambique","Maputo"],["Namibie","Windhoek"],["Nauroo","Yaren"],["Népal","Katmandou"],["Nicaragua","Managua"],
+    ["Niger","Niamey"],["Nigeria","Abuja"],["Norvège","Oslo"],["Nouvelle-Zélande","Wellington"],["Oman","Mascate"],
+    ["Ouganda","Kampala"],["Ouzbékistan","Tachkent"],["Pakistan","Islamabad"],["Palaos","Ngerulmud"],["Panama","Panama"],
+    ["Papouasie-Nouvelle-Guinée","Port Moresby"],["Paraguay","Asuncion"],["Pays-Bas","Amsterdam"],["Pérou","Lima"],["Philippines","Manille"],
+    ["Pologne","Varsovie"],["Portugal","Lisbonne"],["Qatar","Doha"],["République tchèque","Prague"],["Roumanie","Bucarest"],
+    ["Royaume-Uni","Londres"],["Russie","Moscou"],["Rwanda","Kigali"],["Saint-Christophe-et-Niévès","Basseterre"],["Sainte-Lucie","Castries"],
+    ["Saint-Vincent-et-les-Grenadines","Kingstown"],["Salomon (Îles)","Honiara"],["Salvador","San Salvador"],["Samoa","Apia"],["Sao Tomé-et-Principe","São Tomé"],
+    ["Sénégal","Dakar"],["Serbie","Belgrade"],["Seychelles","Victoria"],["Sierra Leone","Freetown"],["Singapour","Singapour"],
+    ["Slovaquie","Bratislava"],["Slovénie","Ljubljana"],["Somalie","Mogadiscio"],["Soudan","Khartoum"],["Soudan du Sud","Djouba"],
+    ["Sri Lanka","Sri Jayawardenepura Kotte"],["Suède","Stockholm"],["Suisse","Berne"],["Suriname","Paramaribo"],["Syrie","Damas"],
+    ["Tadjikistan","Douchanbé"],["Tanzanie","Dodoma"],["Tchad","N'Djamena"],["Thaïlande","Bangkok"],["Timor oriental","Dili"],
+    ["Togo","Lomé"],["Tonga","Nuku'alofa"],["Trinité-et-Tobago","Port d'Espagne"],["Tunisie","Tunis"],["Turkménistan","Achgabat"],
+    ["Turquie","Ankara"],["Tuvalu","Funafuti"],["Ukraine","Kiev"],["Uruguay","Montevideo"],["Vanuatu","Port-Vila"],
+    ["Vatican","Vatican"],["Venezuela","Caracas"],["Viêt Nam","Hanoï"],["Yémen","Sanaa"],["Zambie","Lusaka"],["Zimbabwe","Harare"]
+  ];
+
+  // Variantes acceptées (orthographes, anglicismes) → capitale officielle
+  const ALIASES = new Map([
+    ["saint johns","saint john's"],["st johns","saint john's"],["washington dc","washington"],["la havane","la havane"],
+    ["sao tome","são tomé"],["sao tomé","são tomé"],["sao tome et principe","são tomé"],["bichkek","bichkek"],
+    ["oulan bator","oulan-bator"],["douchambe","douchanbé"],["dacca","dacca"],["rangoun","naypyidaw"],["al quds","jérusalem"],
+    ["pekin","pékin"],["kiev","kiev"],["kyiv","kiev"],["sanaa","sanaa"],["nuku alofa","nuku'alofa"],["porto novo","porto-novo"],
+    ["st george","saint george's"],["st georges","saint george's"],["port of spain","port d'espagne"],["delhi","new delhi"],
+    ["riyadh","riyad"],["mecca","riyad"],["makkah","riyad"],["ulaanbaatar","oulan-bator"],["kotte","sri jayawardenepura kotte"],
+    ["prague","prague"],["warsaw","varsovie"],["vienna","vienne"],["athens","athènes"],["rome","rome"],["london","londres"],
+  ]);
+
+  // ======= État local =======
+  let ROOM = null; // id du salon
+  let ME = { id: uid(), name: '' };
+  let TIMER = null;
+
+  // ======= UI events =======
+  $('#createBtn').onclick = async () => {
+    ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
+    const id = code(); if(!id){ alert('Choisis un code salon (ex: RIO974).'); return; }
+    const countSel = $('#questionCount').value;
+    const count = countSel==='all' ? CAPITALS.length : parseInt(countSel,10);
+    const seed = Math.abs([...id].reduce((a,c)=>a*33+c.charCodeAt(0),7))%1000000;
+    const order = seededShuffle([...Array(CAPITALS.length).keys()], seed).slice(0,count);
+
+    ROOM = id;
+    const roomRef = ref(db, 'rooms/'+ROOM);
+    await set(roomRef, {
+      createdAt: Date.now(),
+      seed, count, order,
+      started: false, index: 0,
+      players: { [ME.id]: { name: ME.name, score: 0, answered: false, last:"" } },
+    });
+    enterLobby(count);
+  };
+
+  $('#joinBtn').onclick = async () => {
+    ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
+    const id = code(); if(!id){ alert('Entre le code salon.'); return; }
+    ROOM = id;
+    const roomRef = ref(db, 'rooms/'+ROOM);
+    const snap = await get(roomRef);
+    if(!snap.exists()) { alert('Salon introuvable. Demande au pote de le créer.'); return; }
+    await update(roomRef, { ['players/'+ME.id]: { name: ME.name, score: 0, answered: false, last:"" } });
+    const data = snap.val();
+    enterLobby(data.count);
+  };
+
+  function enterLobby(count){
+    $('#setup').classList.remove('grid');
+    $('#lobby').classList.remove('hidden');
+    $('#lobbyRoom').textContent = ROOM;
+    $('#shareCode').textContent = ROOM;
+    $('#lobbyCount').textContent = count;
+    $('#startBtn').style.display = 'inline-block';
+    // live players list
+    onValue(ref(db, 'rooms/'+ROOM+'/players'), (s)=>{
+      const v=s.val()||{}; $('#players').innerHTML = Object.values(v).map(p=>`<li>${p.name} — <span class="muted small">${p.score} pts</span></li>`).join('');
+    });
+    // listen to started
+    onValue(ref(db, 'rooms/'+ROOM+'/started'), (s)=>{ if(s.val()) startGame(); });
+    $('#startBtn').onclick = async ()=>{
+      const baseRef = ref(db, 'rooms/'+ROOM);
+      const snap = await get(baseRef); if(!snap.exists()) return;
+      const data = snap.val();
+      await update(baseRef, { started:true, index:0 });
+    };
+  }
+
+  function startGame(){
+    $('#setup').classList.add('hidden');
+    $('#game').classList.remove('hidden');
+    $('#gameRoom').textContent = ROOM; $('#roundStatus').textContent='';
+    onValue(ref(db, 'rooms/'+ROOM), s=>{
+      const r = s.val(); if(!r) return;
+      const idx = r.index;
+      $('#qTotal').textContent = r.count;
+      $('#qIndex').textContent = Math.min(idx+1, r.count);
+      const [country, cap] = CAPITALS[r.order[idx]] || [];
+      $('#country').textContent = country || '';
+      const others = Object.entries(r.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
+      $('#opScore').textContent = others[0]?.score ?? 0;
+      $('#myScore').textContent = r.players?.[ME.id]?.score ?? 0;
+      if(idx>=r.count){
+        showResults(r);
+      }
+    });
+    // minuteur par question
+    startTimer(30);
+    onValue(ref(db, 'rooms/'+ROOM+'/index'), ()=>{ resetForNext(); startTimer(30); });
+    $('#submitBtn').onclick = submitAnswer;
+    $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
+  }
+
+  function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
+  function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); }
+
+  async function submitAnswer(){
+    const ans = $('#answer').value.trim();
+    if(!ans) return autoLock();
+    await lockAndEvaluate(ans);
+  }
+  async function autoLock(){ await lockAndEvaluate(''); }
+
+  async function lockAndEvaluate(raw){
+    const base = ref(db, 'rooms/'+ROOM);
+    await runTransaction(base, (room)=>{
+      if(!room || room.index>=room.count) return room;
+      const idx = room.index;
+      const [country, cap] = CAPITALS[room.order[idx]];
+      const me = room.players?.[ME.id] || { name: ME.name, score:0, answered:false, last:"" };
+      if(me.answered) return room; // déjà répondu
+      const expected = norm(cap);
+      const got = norm(ALIASES.get(norm(raw)) || raw);
+      const ok = got && expected===norm(ALIASES.get(got)||got);
+      me.answered = true; me.last = raw; if(ok) me.score = (me.score||0) + 1;
+      room.players[ME.id] = me;
+      // si tous ont répondu → next
+      const allAnswered = Object.values(room.players).every(p=>p.answered);
+      if(allAnswered){
+        // reset flags et avancer
+        for(const pid of Object.keys(room.players)) room.players[pid].answered=false;
+        room.index = idx+1;
+      }
+      return room;
+    });
+  }
+
+  function showResults(room){
+    $('#game').classList.add('hidden');
+    $('#results').classList.remove('hidden');
+    const me = room.players?.[ME.id];
+    const others = Object.entries(room.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
+    const op = others[0]||{name:'Adversaire',score:0};
+    $('#meFinal').innerHTML = `<div class="big">${me?.name||'Moi'}</div><div class="ok" style="font-size:36px;font-weight:800">${me?.score||0} pts</div>`;
+    $('#opFinal').innerHTML = `<div class="big">${op.name}</div><div class="ok" style="font-size:36px;font-weight:800">${op.score} pts</div>`;
+  }
+
+  // focus UX
+  $('#playerName').value = localStorage.getItem('lastName')||'';
+  $('#playerName').addEventListener('change',()=>localStorage.setItem('lastName',$('#playerName').value));
+</script>
+</body>
+</html>

@@ -208,4 +208,137 @@
   // Variantes acceptées → capitale officielle
   const ALIASES = new Map([
     ["saint johns","saint john's"],["st johns","saint john's"],["washington dc","washington"],["la havane","la havane"],
-    ["sao tome","são tomé"],["sao tomé","são tomé"],
+    ["sao tome","são tomé"],["sao tomé","são tomé"],["sao tome et principe","são tomé"],["bichkek","bichkek"],
+    ["oulan bator","oulan-bator"],["douchambe","douchanbé"],["dacca","dacca"],["rangoun","naypyidaw"],["al quds","jérusalem"],
+    ["pekin","pékin"],["kiev","kiev"],["kyiv","kiev"],["sanaa","sanaa"],["nuku alofa","nuku'alofa"],["porto novo","porto-novo"],
+    ["st george","saint george's"],["st georges","saint george's"],["port of spain","port d'espagne"],["delhi","new delhi"],
+    ["riyadh","riyad"],["mecca","riyad"],["makkah","riyad"],["ulaanbaatar","oulan-bator"],["kotte","sri jayawardenepura kotte"],
+    ["prague","prague"],["warsaw","varsovie"],["vienna","vienne"],["athens","athènes"],["rome","rome"],["london","londres"]
+  ]);
+
+  // ======= État local =======
+  let ROOM = null;
+  let ME = { id: uid(), name: '' };
+  let TIMER = null;
+
+  // ======= UI events =======
+  $('#createBtn').onclick = async () => {
+    ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
+    const id = code(); if(!id){ alert('Choisis un code salon (ex: RIO974).'); return; }
+    const countSel = $('#questionCount').value;
+    const count = countSel==='all' ? CAPITALS.length : parseInt(countSel,10);
+    const seed = Math.abs([...id].reduce((a,c)=>a*33+c.charCodeAt(0),7))%1000000;
+    const order = seededShuffle([...Array(CAPITALS.length).keys()], seed).slice(0,count);
+
+    ROOM = id;
+    const roomRef = ref(db, 'rooms/'+ROOM);
+    await set(roomRef, {
+      createdAt: Date.now(),
+      seed, count, order,
+      started: false, index: 0,
+      players: { [ME.id]: { name: ME.name, score: 0, answered: false, last:"" } },
+    });
+    enterLobby(count);
+  };
+
+  $('#joinBtn').onclick = async () => {
+    ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
+    const id = code(); if(!id){ alert('Entre le code salon.'); return; }
+    ROOM = id;
+    const roomRef = ref(db, 'rooms/'+ROOM);
+    const snap = await get(roomRef);
+    if(!snap.exists()) { alert('Salon introuvable. Demande au pote de le créer.'); return; }
+    await update(roomRef, { ['players/'+ME.id]: { name: ME.name, score: 0, answered: false, last:"" } });
+    const data = snap.val();
+    enterLobby(data.count);
+  };
+
+  function enterLobby(count){
+    $('#setup').classList.remove('grid');
+    $('#lobby').classList.remove('hidden');
+    $('#lobbyRoom').textContent = ROOM;
+    $('#shareCode').textContent = ROOM;
+    $('#lobbyCount').textContent = count;
+    $('#startBtn').style.display = 'inline-block';
+    onValue(ref(db, 'rooms/'+ROOM+'/players'), (s)=>{
+      const v=s.val()||{}; $('#players').innerHTML = Object.values(v).map(p=>`<li>${p.name} — <span class="muted small">${p.score} pts</span></li>`).join('');
+    });
+    onValue(ref(db, 'rooms/'+ROOM+'/started'), (s)=>{ if(s.val()) startGame(); });
+    $('#startBtn').onclick = async ()=>{
+      const baseRef = ref(db, 'rooms/'+ROOM);
+      const snap = await get(baseRef); if(!snap.exists()) return;
+      await update(baseRef, { started:true, index:0 });
+    };
+  }
+
+  function startGame(){
+    $('#setup').classList.add('hidden');
+    $('#game').classList.remove('hidden');
+    $('#gameRoom').textContent = ROOM; $('#roundStatus').textContent='';
+    onValue(ref(db, 'rooms/'+ROOM), s=>{
+      const r = s.val(); if(!r) return;
+      const idx = r.index;
+      $('#qTotal').textContent = r.count;
+      $('#qIndex').textContent = Math.min(idx+1, r.count);
+      const pair = CAPITALS[r.order[idx]] || [];
+      const country = pair[0] || '';
+      $('#country').textContent = country;
+      const others = Object.entries(r.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
+      $('#opScore').textContent = others[0]?.score ?? 0;
+      $('#myScore').textContent = r.players?.[ME.id]?.score ?? 0;
+      if(idx>=r.count){ showResults(r); }
+    });
+    startTimer(30);
+    onValue(ref(db, 'rooms/'+ROOM+'/index'), ()=>{ resetForNext(); startTimer(30); });
+    $('#submitBtn').onclick = submitAnswer;
+    $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
+  }
+
+  function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
+  function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); }
+
+  async function submitAnswer(){
+    const ans = $('#answer').value.trim();
+    if(!ans) return autoLock();
+    await lockAndEvaluate(ans);
+  }
+  async function autoLock(){ await lockAndEvaluate(''); }
+
+  async function lockAndEvaluate(raw){
+    const base = ref(db, 'rooms/'+ROOM);
+    await runTransaction(base, (room)=>{
+      if(!room || room.index>=room.count) return room;
+      const idx = room.index;
+      const [country, cap] = CAPITALS[room.order[idx]];
+      const me = room.players?.[ME.id] || { name: ME.name, score:0, answered:false, last:"" };
+      if(me.answered) return room;
+      const expected = norm(cap);
+      const got = norm(ALIASES.get(norm(raw)) || raw);
+      const ok = got && expected===norm(ALIASES.get(got)||got);
+      me.answered = true; me.last = raw; if(ok) me.score = (me.score||0) + 1;
+      room.players[ME.id] = me;
+      const allAnswered = Object.values(room.players).every(p=>p.answered);
+      if(allAnswered){
+        for(const pid of Object.keys(room.players)) room.players[pid].answered=false;
+        room.index = idx+1;
+      }
+      return room;
+    });
+  }
+
+  function showResults(room){
+    $('#game').classList.add('hidden');
+    $('#results').classList.remove('hidden');
+    const me = room.players?.[ME.id];
+    const others = Object.entries(room.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
+    const op = others[0]||{name:'Adversaire',score:0};
+    $('#meFinal').innerHTML = `<div class="big">${me?.name||'Moi'}</div><div class="ok" style="font-size:36px;font-weight:800">${me?.score||0} pts</div>`;
+    $('#opFinal').innerHTML = `<div class="big">${op.name}</div><div class="ok" style="font-size:36px;font-weight:800">${op.score} pts</div>`;
+  }
+
+  // focus UX
+  $('#playerName').value = localStorage.getItem('lastName')||'';
+  $('#playerName').addEventListener('change',()=>localStorage.setItem('lastName',$('#playerName').value));
+</script>
+</body>
+</html>

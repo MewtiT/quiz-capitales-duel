@@ -130,7 +130,7 @@
 
 <!-- Firebase v10 CDN -->
 <script type="module">
-  // 🔧 Ta config Firebase (OK pour ton projet)
+  // === CONFIG FIREBASE (tes valeurs) ===
   const firebaseConfig = {
     apiKey: "AIzaSyCe-bTChoBYZzzX_F9Cwf6tZXGIxzS4Qf8",
     authDomain: "quizz-capitales.firebaseapp.com",
@@ -143,17 +143,19 @@
 
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
   import {
-    getDatabase,
-    ref,
-    onValue,
-    set,
-    update,
-    get,
-    runTransaction
+    getDatabase, ref, onValue, set, update, get, runTransaction
   } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+  // === INIT + LOGS ===
+  let app, db;
+  try {
+    app = initializeApp(firebaseConfig);
+    db  = getDatabase(app);
+    console.log('[OK] Firebase initialisé', firebaseConfig.databaseURL);
+  } catch (e) {
+    console.error('❌ Firebase init error', e);
+    alert('Erreur init Firebase (voir Console)');
+  }
 
   // ======= Utilitaires =======
   const $ = sel => document.querySelector(sel);
@@ -163,8 +165,8 @@
   const code = () => ($('#roomId').value||'').replace(/\W/g,'').toUpperCase();
   const uid  = () => localStorage.getItem('uid') || (localStorage.setItem('uid', crypto.randomUUID()), localStorage.getItem('uid'));
 
-  // ======= Données pays → capitale (compact) =======
-  const CAPITALS = [
+  // ======= Données =======
+  const CAPITALS = [ /* ... (même liste que plus haut) ... */ 
     ["Afghanistan","Kaboul"],["Albanie","Tirana"],["Algérie","Alger"],["Andorre","Andorre-la-Vieille"],["Angola","Luanda"],
     ["Antigua-et-Barbuda","Saint John's"],["Arabie saoudite","Riyad"],["Argentine","Buenos Aires"],["Arménie","Erevan"],["Australie","Canberra"],
     ["Autriche","Vienne"],["Azerbaïdjan","Bakou"],["Bahamas","Nassau"],["Bahreïn","Manama"],["Bangladesh","Dacca"],
@@ -205,14 +207,13 @@
     ["Vatican","Vatican"],["Venezuela","Caracas"],["Viêt Nam","Hanoï"],["Yémen","Sanaa"],["Zambie","Lusaka"],["Zimbabwe","Harare"]
   ];
 
-  // Variantes acceptées → capitale officielle
   const ALIASES = new Map([
     ["saint johns","saint john's"],["st johns","saint john's"],["washington dc","washington"],["la havane","la havane"],
     ["sao tome","são tomé"],["sao tomé","são tomé"],["sao tome et principe","são tomé"],["bichkek","bichkek"],
     ["oulan bator","oulan-bator"],["douchambe","douchanbé"],["dacca","dacca"],["rangoun","naypyidaw"],["al quds","jérusalem"],
     ["pekin","pékin"],["kiev","kiev"],["kyiv","kiev"],["sanaa","sanaa"],["nuku alofa","nuku'alofa"],["porto novo","porto-novo"],
     ["st george","saint george's"],["st georges","saint george's"],["port of spain","port d'espagne"],["delhi","new delhi"],
-    ["riyadh","riyad"],["mecca","riyad"],["makkah","riyad"],["ulaanbaatar","oulan-bator"],["kotte","sri jayawardenepura kotte"],
+    ["riyadh","riyad"],["ulaanbaatar","oulan-bator"],["kotte","sri jayawardenepura kotte"],
     ["prague","prague"],["warsaw","varsovie"],["vienna","vienne"],["athens","athènes"],["rome","rome"],["london","londres"]
   ]);
 
@@ -223,6 +224,7 @@
 
   // ======= UI events =======
   $('#createBtn').onclick = async () => {
+    console.log('[UI] create clicked');
     ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
     const id = code(); if(!id){ alert('Choisis un code salon (ex: RIO974).'); return; }
     const countSel = $('#questionCount').value;
@@ -232,25 +234,39 @@
 
     ROOM = id;
     const roomRef = ref(db, 'rooms/'+ROOM);
-    await set(roomRef, {
-      createdAt: Date.now(),
-      seed, count, order,
-      started: false, index: 0,
-      players: { [ME.id]: { name: ME.name, score: 0, answered: false, last:"" } },
-    });
-    enterLobby(count);
+    try {
+      await set(roomRef, {
+        createdAt: Date.now(),
+        seed, count, order,
+        started: false, index: 0,
+        players: { [ME.id]: { name: ME.name, score: 0, answered: false, last:"" } },
+      });
+      console.log('[DB] room created', ROOM);
+      alert('Salon créé: '+ROOM);
+      enterLobby(count);
+    } catch (e) {
+      console.error('❌ set(room) failed', e);
+      alert('Erreur écriture RTDB: '+(e?.message||e));
+    }
   };
 
   $('#joinBtn').onclick = async () => {
+    console.log('[UI] join clicked');
     ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
     const id = code(); if(!id){ alert('Entre le code salon.'); return; }
     ROOM = id;
     const roomRef = ref(db, 'rooms/'+ROOM);
-    const snap = await get(roomRef);
-    if(!snap.exists()) { alert('Salon introuvable. Demande au pote de le créer.'); return; }
-    await update(roomRef, { ['players/'+ME.id]: { name: ME.name, score: 0, answered: false, last:"" } });
-    const data = snap.val();
-    enterLobby(data.count);
+    try {
+      const snap = await get(roomRef);
+      if(!snap.exists()) { alert('Salon introuvable. Demande au pote de le créer.'); return; }
+      await update(roomRef, { ['players/'+ME.id]: { name: ME.name, score: 0, answered: false, last:"" } });
+      const data = snap.val();
+      console.log('[DB] joined', ROOM);
+      enterLobby(data.count);
+    } catch (e) {
+      console.error('❌ join failed', e);
+      alert('Erreur lecture/écriture RTDB: '+(e?.message||e));
+    }
   };
 
   function enterLobby(count){
@@ -266,8 +282,14 @@
     onValue(ref(db, 'rooms/'+ROOM+'/started'), (s)=>{ if(s.val()) startGame(); });
     $('#startBtn').onclick = async ()=>{
       const baseRef = ref(db, 'rooms/'+ROOM);
-      const snap = await get(baseRef); if(!snap.exists()) return;
-      await update(baseRef, { started:true, index:0 });
+      try {
+        const snap = await get(baseRef); if(!snap.exists()) return;
+        await update(baseRef, { started:true, index:0 });
+        console.log('[DB] game started');
+      } catch (e) {
+        console.error('❌ start failed', e);
+        alert('Erreur start: '+(e?.message||e));
+      }
     };
   }
 

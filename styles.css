@@ -86,4 +86,48 @@ th{color:#cbd5e1;text-align:left}
 #corrSelect {
   min-width: 160px;
 }
+/* compact selects */
+select.compact {
+  padding: 8px 12px;
+  min-width: 220px;
+}
+
+/* Regions dropdown with checkboxes */
+.picker {
+  position: relative;
+  display: inline-block;
+  min-width: 260px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  background: rgba(255,255,255,.03);
+}
+.picker > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+}
+.picker > summary::-webkit-details-marker { display: none; }
+
+.picker .summary-text {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.picker-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(2,6,23,.9);
+  border-radius: 0 0 10px 10px;
+}
+.picker[open] {
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+.picker-menu label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; color: #cbd5e1;
+}
 

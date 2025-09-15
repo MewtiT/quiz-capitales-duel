@@ -184,17 +184,24 @@ function startGame(){
   // QCM : surbrillance et lock
   document.querySelectorAll('.mc-btn').forEach(btn=>{
     btn.onclick = ()=>{
-      if (CLICK_LOCK) return;        // ✅ ignore les clics suivants
-      document.querySelectorAll('.mc-btn').forEach(b=>b.classList.remove('selected'));
-      btn.classList.add('selected'); // surbrillance
-      CLICK_LOCK = true;             // on verrouille localement (mais SANS disable)
-      submitAnswer(btn.textContent); // envoie la réponse
+      if (CLICK_LOCK) return;
+      // reset visuel sur les 4
+      document.querySelectorAll('.mc-btn').forEach(b=>{
+        b.classList.remove('selected');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      // sélection locale
+      btn.classList.add('selected');
+      btn.setAttribute('aria-pressed', 'true');
+  
+      CLICK_LOCK = true;
+      submitAnswer(btn.textContent);
     };
   });
 }
 
 function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
-function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); CLICK_LOCK = false; document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); }); }
+function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); CLICK_LOCK = false; document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); }); }
 
 async function submitAnswer(valueFromMC){
   const ans = (valueFromMC!==undefined) ? valueFromMC : $('#answer').value.trim();

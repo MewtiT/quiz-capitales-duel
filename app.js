@@ -168,16 +168,29 @@ function rebuildQuestionCountOptions(poolLen){
   sel.insertAdjacentHTML('beforeend', `<option value="all">Toutes (${poolLen})</option>`);
 }
 function selectedRegions(){
-  const sel = $('#regionSelect');
-  return Array.from(sel.selectedOptions).map(o => o.value);
+  return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
+}
+
+function updateRegionSummary() {
+  const regs = selectedRegions();
+  const txt = regs.length === 0 ? 'Aucune' :
+              regs.length === 5 ? 'Toutes' :
+              regs.join(', ');
+  const span = document.getElementById('regionSummary');
+  if (span) span.textContent = txt;
 }
 
 function refreshCountForRegions(){
   const pool = filterByRegions(selectedRegions());
   rebuildQuestionCountOptions(pool.length);
+  updateRegionSummary();
 }
-$('#regionSelect').addEventListener('change', refreshCountForRegions);
-refreshCountForRegions(); // initial
+
+// listen to changes on the checkboxes
+document.querySelectorAll('.regionChk').forEach(chk=>{
+  chk.addEventListener('change', refreshCountForRegions);
+});
+refreshCountForRegions(); // initial fill
 
 // ===== Local state =====
 let ROOM = null;

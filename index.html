@@ -18,21 +18,35 @@
           <input id="roomId" placeholder="Code salon (ex: RIO974)" />
         </div>
         <div class="row">
-          <select id="questionCount">
-            <option value="10">10 questions</option>
-            <option value="20">20 questions</option>
-            <option value="40">40 questions</option>
-            <option value="60">60 questions</option>
-            <option value="100">100 questions</option>
-            <option value="all">Toutes les capitales</option>
-          </select>
-          <select id="modeSelect" title="Mode de jeu">
-            <option value="text">Mode saisie</option>
-            <option value="mc">Mode QCM (4 choix)</option>
-          </select>
-          <button id="createBtn" class="primary">Créer le salon</button>
-          <button id="joinBtn">Rejoindre</button>
-        </div>
+            <!-- Régions -->
+            <div class="region-group">
+              <span class="small muted">Régions :</span>
+              <label><input type="checkbox" class="regionChk" value="Afrique" checked> Afrique</label>
+              <label><input type="checkbox" class="regionChk" value="Amérique" checked> Amérique</label>
+              <label><input type="checkbox" class="regionChk" value="Asie" checked> Asie</label>
+              <label><input type="checkbox" class="regionChk" value="Europe" checked> Europe</label>
+              <label><input type="checkbox" class="regionChk" value="Océanie" checked> Océanie</label>
+            </div>
+          
+            <!-- Nombre de questions (se remplit dynamiquement selon régions) -->
+            <select id="questionCount"></select>
+          
+            <!-- Mode de jeu -->
+            <select id="modeSelect" title="Mode de jeu">
+              <option value="text">Mode saisie</option>
+              <option value="mc">Mode QCM (4 choix)</option>
+            </select>
+          
+            <!-- Correction -->
+            <div class="region-group">
+              <span class="small muted">Correction :</span>
+              <label><input type="radio" name="corr" id="corrOff" value="off" checked> Sans</label>
+              <label><input type="radio" name="corr" id="corrOn" value="on"> Avec</label>
+            </div>
+          
+            <button id="createBtn" class="primary">Créer le salon</button>
+            <button id="joinBtn">Rejoindre</button>
+          </div>
         <p class="small muted">1) Entrez le <b>code salon</b>. 2) Choisissez le <b>mode</b>. 3) Créez le <b>salon</b>. 4) <b>Commencez !</b></p>
         <div class="sep"></div>
 
@@ -70,6 +84,8 @@
           <input id="answer" placeholder="Ta réponse" autocomplete="off" />
           <button id="submitBtn" class="primary">Valider</button>
         </div>
+        <!-- Ligne de correction pour le mode saisie -->
+        <div id="correctionLine" class="small hidden"></div>
         <div id="mcZone" class="mc-grid hidden">
           <button class="mc-btn" data-i="0"></button>
           <button class="mc-btn" data-i="1"></button>

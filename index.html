@@ -18,29 +18,29 @@
           <input id="roomId" placeholder="Code salon (ex: RIO974)" />
         </div>
         <div class="row">
-            <!-- Régions (multi-sélection) -->
-            <label class="small muted" for="regionSelect">Régions :</label>
-            <select id="regionSelect" multiple size="5" title="Choisis une ou plusieurs régions">
-              <option value="Afrique" selected>Afrique</option>
-              <option value="Amérique" selected>Amérique</option>
-              <option value="Asie"     selected>Asie</option>
-              <option value="Europe"   selected>Europe</option>
-              <option value="Océanie"  selected>Océanie</option>
-            </select>
+            <!-- Régions (compact multi-select dropdown) -->
+            <details id="regionPicker" class="picker">
+              <summary>
+                <span class="muted small">Régions :</span>
+                <span id="regionSummary" class="summary-text">Toutes</span>
+              </summary>
+              <div class="picker-menu">
+                <label><input type="checkbox" class="regionChk" value="Afrique" checked> Afrique</label>
+                <label><input type="checkbox" class="regionChk" value="Amérique" checked> Amérique</label>
+                <label><input type="checkbox" class="regionChk" value="Asie" checked> Asie</label>
+                <label><input type="checkbox" class="regionChk" value="Europe" checked> Europe</label>
+                <label><input type="checkbox" class="regionChk" value="Océanie" checked> Océanie</label>
+              </div>
+            </details>
             
-            <!-- Nombre de questions (restera tel quel, rempli dynamiquement) -->
-            <select id="questionCount"></select>
-            
-            <!-- Mode de jeu -->
-            <select id="modeSelect" title="Mode de jeu">
+            <!-- (keep your existing selects) -->
+            <select id="questionCount" class="compact"></select>
+            <select id="modeSelect" title="Mode de jeu" class="compact">
               <option value="text">Mode saisie</option>
               <option value="mc">Mode QCM (4 choix)</option>
             </select>
-            
-            <!-- Correction -->
-            <label class="small muted" for="corrSelect">Correction :</label>
-            <select id="corrSelect" title="Afficher la correction après chaque question ?">
-              <option value="off" selected>Sans</option>
+            <select id="corrSelect" class="compact">
+              <option value="off">Sans</option>
               <option value="on">Avec</option>
             </select>
 

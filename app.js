@@ -196,6 +196,12 @@ $('#createBtn').onclick = async () => {
   const regions = selectedRegions();
   const pool = filterByRegions(regions);
 
+  // ✅ garde-fou : au moins une région
+  if (pool.length === 0) {
+    alert('Sélectionne au moins une région.');
+    return;
+  }
+  
   const countSelVal = $('#questionCount').value;
   const count = countSelVal==='all' ? pool.length : parseInt(countSelVal,10);
 
@@ -342,16 +348,18 @@ function startGame(){
       if (ROOM_CORR && window.__lastRoomSnapshot){
         const r = window.__lastRoomSnapshot;
         const correct = CAPITALS[r.order[r.index]][1];
-        const isGood = btn.textContent.trim().toLowerCase() === correct.trim().toLowerCase();
+        const isGood = norm(btn.textContent) === norm(correct);   // ← ici
+      
         if (isGood){
           flash(btn, 'flash-ok', 1000);
         } else {
           flash(btn, 'flash-bad', 1000);
           const goodBtn = Array.from(document.querySelectorAll('.mc-btn'))
-            .find(b => b.textContent.trim().toLowerCase() === correct.trim().toLowerCase());
+            .find(b => norm(b.textContent) === norm(correct));     // ← et ici
           if (goodBtn) flash(goodBtn, 'flash-ok', 1000);
         }
       }
+
 
       CLICK_LOCK = true;
       submitAnswer(btn.textContent);

@@ -168,13 +168,15 @@ function rebuildQuestionCountOptions(poolLen){
   sel.insertAdjacentHTML('beforeend', `<option value="all">Toutes (${poolLen})</option>`);
 }
 function selectedRegions(){
-  return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
+  const sel = $('#regionSelect');
+  return Array.from(sel.selectedOptions).map(o => o.value);
 }
+
 function refreshCountForRegions(){
   const pool = filterByRegions(selectedRegions());
   rebuildQuestionCountOptions(pool.length);
 }
-document.querySelectorAll('.regionChk').forEach(chk=> chk.addEventListener('change', refreshCountForRegions));
+$('#regionSelect').addEventListener('change', refreshCountForRegions);
 refreshCountForRegions(); // initial
 
 // ===== Local state =====
@@ -202,7 +204,7 @@ $('#createBtn').onclick = async () => {
   const poolToGlobal = pool.map(([country]) => CAPITALS.findIndex(([c])=>c===country));
   const order = orderInPool.map(i => poolToGlobal[i]);
 
-  const correction = $('#corrOn').checked;
+  const correction = $('#corrSelect').value === 'on';
 
   ROOM = id;
   await set(ref(db, 'rooms/'+ROOM), {

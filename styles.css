@@ -23,15 +23,15 @@ button.primary:hover{transform:translateY(-1px);background:#0f1a30}
 .mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .mc-btn{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0d1424;cursor:pointer}
 .mc-btn:hover{transform:translateY(-1px)}
-/* QCM : état sélectionné */
+/* QCM : état sélectionné (bleu électrique) */
 #mcZone button.mc-btn.selected,
 #mcZone button.mc-btn[aria-pressed="true"]{
-  background: linear-gradient(180deg, rgba(34,197,94,.18), rgba(34,197,94,.12));
-  border-color: rgba(34,197,94,.85);
-  box-shadow: 0 0 0 2px rgba(34,197,94,.35), 0 6px 18px rgba(34,197,94,.22) inset;
+  background: linear-gradient(180deg, rgba(96,165,250,.20), rgba(96,165,250,.12)); /* ~#60A5FA */
+  border-color: rgba(96,165,250,.90);
+  box-shadow: 0 0 0 2px rgba(96,165,250,.35), 0 6px 18px rgba(96,165,250,.22) inset;
   font-weight: 600;
   transform: translateY(-1px) scale(1.02);
-  outline: 2px solid rgba(34,197,94,.45);
+  outline: 2px solid rgba(96,165,250,.45);
 }
 
 .board{display:grid;grid-template-columns:1fr 1fr;gap:12px}

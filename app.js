@@ -23,7 +23,13 @@ const rand = (seed => () => (seed = (seed*9301+49297)%233280, seed/233280));
 const seededShuffle = (arr, seed) => { const r = rand(seed); const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(r()* (i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 const code = () => ($('#roomId').value||'').replace(/\W/g,'').toUpperCase();
 const uid  = () => localStorage.getItem('uid') || (localStorage.setItem('uid', crypto.randomUUID()), localStorage.getItem('uid'));
-const REVEAL_MS = 700;
+const BASE_REVEAL_MS = 700; // sans correction
+
+function flash(elem, cls, ms=1000){
+  if(!elem) return;
+  elem.classList.add(cls);
+  setTimeout(()=>elem.classList.remove(cls), ms);
+}
 
 // ===== Data =====
 const CAPITALS = [
@@ -77,12 +83,64 @@ const ALIASES = new Map([
   ["prague","prague"],["warsaw","varsovie"],["vienna","vienne"],["athens","athènes"],["rome","rome"],["london","londres"]
 ]);
 
-// ===== Local state =====
-let ROOM = null;
-let ME = { id: uid(), name: '' };
-let TIMER = null;
-let CLICK_LOCK = false; // empêche d'envoyer 15 fois la même réponse localement
-let ROOM_MODE = 'mc'; // 'text' | 'mc'
+// --- PAYS → RÉGION (Afrique, Amérique, Asie, Europe, Océanie) ---
+const REGION_OF = new Map([
+  // Afrique
+  ["Algérie","Afrique"],["Angola","Afrique"],["Bénin","Afrique"],["Botswana","Afrique"],["Burkina Faso","Afrique"],
+  ["Burundi","Afrique"],["Cameroun","Afrique"],["Cap-Vert","Afrique"],["Centrafrique","Afrique"],["Comores","Afrique"],
+  ["Congo (RDC)","Afrique"],["Congo (République)","Afrique"],["Côte d’Ivoire","Afrique"],["Djibouti","Afrique"],["Égypte","Afrique"],
+  ["Érythrée","Afrique"],["Eswatini","Afrique"],["Éthiopie","Afrique"],["Gabon","Afrique"],["Gambie","Afrique"],
+  ["Ghana","Afrique"],["Guinée","Afrique"],["Guinée-Bissau","Afrique"],["Guinée équatoriale","Afrique"],["Kenya","Afrique"],
+  ["Lesotho","Afrique"],["Libéria","Afrique"],["Libye","Afrique"],["Madagascar","Afrique"],["Malawi","Afrique"],
+  ["Mali","Afrique"],["Maroc","Afrique"],["Maurice","Afrique"],["Mauritanie","Afrique"],["Mozambique","Afrique"],
+  ["Namibie","Afrique"],["Niger","Afrique"],["Nigeria","Afrique"],["Ouganda","Afrique"],["Rwanda","Afrique"],
+  ["Sao Tomé-et-Principe","Afrique"],["Sénégal","Afrique"],["Seychelles","Afrique"],["Sierra Leone","Afrique"],["Somalie","Afrique"],
+  ["Soudan","Afrique"],["Soudan du Sud","Afrique"],["Tanzanie","Afrique"],["Tchad","Afrique"],["Togo","Afrique"],
+  ["Tunisie","Afrique"],["Zambie","Afrique"],["Zimbabwe","Afrique"],
+
+  // Amérique
+  ["Antigua-et-Barbuda","Amérique"],["Argentine","Amérique"],["Bahamas","Amérique"],["Barbade","Amérique"],["Belize","Amérique"],
+  ["Bolivie","Amérique"],["Brésil","Amérique"],["Canada","Amérique"],["Chili","Amérique"],["Colombie","Amérique"],
+  ["Costa Rica","Amérique"],["Cuba","Amérique"],["Dominique","Amérique"],["États-Unis","Amérique"],["Grenade","Amérique"],
+  ["Guatemala","Amérique"],["Guyana","Amérique"],["Haïti","Amérique"],["Honduras","Amérique"],["Jamaïque","Amérique"],
+  ["Mexique","Amérique"],["Nicaragua","Amérique"],["Panama","Amérique"],["Paraguay","Amérique"],["Pérou","Amérique"],
+  ["Saint-Christophe-et-Niévès","Amérique"],["Sainte-Lucie","Amérique"],["Saint-Vincent-et-les-Grenadines","Amérique"],["Salvador","Amérique"],
+  ["Suriname","Amérique"],["Trinité-et-Tobago","Amérique"],["Uruguay","Amérique"],["Venezuela","Amérique"],
+
+  // Asie
+  ["Afghanistan","Asie"],["Arabie saoudite","Asie"],["Arménie","Asie"],["Azerbaïdjan","Asie"],["Bahreïn","Asie"],
+  ["Bangladesh","Asie"],["Bhoutan","Asie"],["Birmanie (Myanmar)","Asie"],["Brunei","Asie"],["Cambodge","Asie"],
+  ["Chine","Asie"],["Corée du Nord","Asie"],["Corée du Sud","Asie"],["Émirats arabes unis","Asie"],["Géorgie","Asie"],
+  ["Inde","Asie"],["Indonésie","Asie"],["Irak","Asie"],["Iran","Asie"],["Israël","Asie"],
+  ["Japon","Asie"],["Jordanie","Asie"],["Kazakhstan","Asie"],["Kirghizistan","Asie"],["Koweït","Asie"],
+  ["Laos","Asie"],["Liban","Asie"],["Malaisie","Asie"],["Maldives","Asie"],["Mongolie","Asie"],
+  ["Népal","Asie"],["Oman","Asie"],["Pakistan","Asie"],["Philippines","Asie"],["Qatar","Asie"],
+  ["Singapour","Asie"],["Sri Lanka","Asie"],["Syrie","Asie"],["Tadjikistan","Asie"],["Thaïlande","Asie"],
+  ["Timor oriental","Asie"],["Turkménistan","Asie"],["Turquie","Asie"],["Ouzbékistan","Asie"],["Viêt Nam","Asie"],
+  ["Yémen","Asie"],
+
+  // Europe
+  ["Albanie","Europe"],["Andorre","Europe"],["Autriche","Europe"],["Belgique","Europe"],["Biélorussie","Europe"],
+  ["Bosnie-Herzégovine","Europe"],["Bulgarie","Europe"],["Croatie","Europe"],["Chypre","Europe"],["Danemark","Europe"],
+  ["Espagne","Europe"],["Estonie","Europe"],["Finlande","Europe"],["France","Europe"],["Grèce","Europe"],
+  ["Hongrie","Europe"],["Irlande","Europe"],["Islande","Europe"],["Italie","Europe"],["Kosovo","Europe"],
+  ["Lettonie","Europe"],["Liechtenstein","Europe"],["Lituanie","Europe"],["Luxembourg","Europe"],["Macédoine du Nord","Europe"],
+  ["Malte","Europe"],["Moldavie","Europe"],["Monaco","Europe"],["Monténégro","Europe"],["Norvège","Europe"],
+  ["Pays-Bas","Europe"],["Pologne","Europe"],["Portugal","Europe"],["République tchèque","Europe"],["Roumanie","Europe"],
+  ["Royaume-Uni","Europe"],["Russie","Europe"],["Serbie","Europe"],["Slovaquie","Europe"],["Slovénie","Europe"],
+  ["Suède","Europe"],["Suisse","Europe"],["Ukraine","Europe"],["Vatican","Europe"],
+
+  // Océanie
+  ["Australie","Océanie"],["Fidji","Océanie"],["Kiribati","Océanie"],["Îles Marshall","Océanie"],["Micronésie","Océanie"],
+  ["Nauroo","Océanie"],["Nouvelle-Zélande","Océanie"],["Palaos","Océanie"],["Papouasie-Nouvelle-Guinée","Océanie"],["Samoa","Océanie"],
+  ["Salomon (Îles)","Océanie"],["Tonga","Océanie"],["Tuvalu","Océanie"],["Vanuatu","Océanie"]
+]);
+
+// (Optionnel) Vérif de couverture
+(function checkRegionCoverage(){
+  const missing = CAPITALS.filter(([c])=>!REGION_OF.has(c)).map(([c])=>c);
+  if(missing.length) console.warn("Région manquante pour:", missing);
+})();
 
 // ---- MC options (seeded, mêmes pour tous) ----
 function mcOptions(orderIndex, seedBase){
@@ -95,51 +153,102 @@ function mcOptions(orderIndex, seedBase){
   return seededShuffle(opts, seedBase*5000 + orderIndex);
 }
 
+// ---- Régions: helpers UI/logic ----
+function filterByRegions(regions){
+  if (regions.length === 0) return CAPITALS;
+  return CAPITALS.filter(([country]) => regions.includes(REGION_OF.get(country)));
+}
+function rebuildQuestionCountOptions(poolLen){
+  const sel = $('#questionCount');
+  sel.innerHTML = '';
+  const maxCap = Math.min(100, poolLen);
+  for(let n=10; n<=maxCap; n+=10){
+    sel.insertAdjacentHTML('beforeend', `<option value="${n}">${n} questions</option>`);
+  }
+  sel.insertAdjacentHTML('beforeend', `<option value="all">Toutes (${poolLen})</option>`);
+}
+function selectedRegions(){
+  return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
+}
+function refreshCountForRegions(){
+  const pool = filterByRegions(selectedRegions());
+  rebuildQuestionCountOptions(pool.length);
+}
+document.querySelectorAll('.regionChk').forEach(chk=> chk.addEventListener('change', refreshCountForRegions));
+refreshCountForRegions(); // initial
+
+// ===== Local state =====
+let ROOM = null;
+let ME = { id: uid(), name: '' };
+let TIMER = null;
+let CLICK_LOCK = false;
+let ROOM_MODE = 'text'; // 'text' | 'mc'
+let ROOM_CORR = false;
+
 // ===== UI events =====
 $('#createBtn').onclick = async () => {
   ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
   const id = code(); if(!id){ alert('Choisis un code salon (ex: RIO974).'); return; }
+
   const mode = $('#modeSelect').value; ROOM_MODE = mode;
-  const countSel = $('#questionCount').value;
-  const count = countSel==='all' ? CAPITALS.length : parseInt(countSel,10);
+  const regions = selectedRegions();
+  const pool = filterByRegions(regions);
+
+  const countSelVal = $('#questionCount').value;
+  const count = countSelVal==='all' ? pool.length : parseInt(countSelVal,10);
+
   const seed = (Date.now() ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0;
-  const order = seededShuffle([...Array(CAPITALS.length).keys()], seed).slice(0,count);
+  const orderInPool = seededShuffle([...Array(pool.length).keys()], seed).slice(0, count);
+  const poolToGlobal = pool.map(([country]) => CAPITALS.findIndex(([c])=>c===country));
+  const order = orderInPool.map(i => poolToGlobal[i]);
+
+  const correction = $('#corrOn').checked;
 
   ROOM = id;
   await set(ref(db, 'rooms/'+ROOM), {
     createdAt: Date.now(),
     seed, count, order, mode,
+    regions, correction,
     started: false, index: 0,
     players: { [ME.id]: { name: ME.name, score: 0, answered: false, last:"", history: [] } },
   });
-  enterLobby(count, mode);
+
+  enterLobby(count, mode, correction, regions);
 };
 
 $('#joinBtn').onclick = async () => {
   ME.name = ($('#playerName').value||'').trim() || 'Joueur-'+uid().slice(0,4);
   const id = code(); if(!id){ alert('Entre le code salon.'); return; }
+
   ROOM = id;
   const roomRef = ref(db, 'rooms/'+ROOM);
   const snap = await get(roomRef);
   if(!snap.exists()) { alert('Salon introuvable. Demande au pote de le créer.'); return; }
   const data = snap.val();
+
   ROOM_MODE = data.mode || 'text';
+  ROOM_CORR = !!data.correction;
+
   await update(roomRef, { ['players/'+ME.id]: { name: ME.name, score: 0, answered: false, last:"", history: [] } });
-  enterLobby(data.count, ROOM_MODE);
+
+  enterLobby(data.count, ROOM_MODE, ROOM_CORR, data.regions || []);
 };
 
-function enterLobby(count, mode){
+function enterLobby(count, mode, correction, regions){
   $('#setup').classList.remove('grid');
   $('#lobby').classList.remove('hidden');
   $('#lobbyRoom').textContent = ROOM;
   $('#shareCode').textContent = ROOM;
   $('#lobbyCount').textContent = count;
-  $('#lobbyMode').textContent = mode==='mc' ? 'QCM' : 'Saisie';
+  $('#lobbyMode').textContent = (mode==='mc' ? 'QCM' : 'Saisie') + (correction ? ' • Correction ON' : ' • Correction OFF');
+
   $('#startBtn').style.display = 'inline-block';
+
   onValue(ref(db, 'rooms/'+ROOM+'/players'), (s)=>{
     const v=s.val()||{}; $('#players').innerHTML = Object.values(v).map(p=>`<li>${p.name} — <span class="muted small">${p.score} pts</span></li>`).join('');
   });
   onValue(ref(db, 'rooms/'+ROOM+'/started'), (s)=>{ if(s.val()) startGame(); });
+
   $('#startBtn').onclick = async ()=>{ await update(ref(db, 'rooms/'+ROOM), { started:true, index:0 }); };
 }
 
@@ -153,12 +262,16 @@ function startGame(){
     if(ROOM_MODE==='mc'){ $('#textZone').classList.add('hidden'); $('#mcZone').classList.remove('hidden'); }
     else { $('#mcZone').classList.add('hidden'); $('#textZone').classList.remove('hidden'); }
   });
+  onValue(ref(db, 'rooms/'+ROOM+'/correction'), (s)=>{ ROOM_CORR = !!s.val(); });
 
   onValue(ref(db, 'rooms/'+ROOM), s=>{
     const r = s.val(); if(!r) return;
+    window.__lastRoomSnapshot = r; // pour l'éval locale
     const idx = r.index;
+
     $('#qTotal').textContent = r.count;
     $('#qIndex').textContent = Math.min(idx+1, r.count);
+
     const pair = CAPITALS[r.order[idx]] || [];
     $('#country').textContent = pair[0] || '';
 
@@ -167,82 +280,147 @@ function startGame(){
       const opts = mcOptions(r.order[idx], r.seed);
       document.querySelectorAll('.mc-btn').forEach((b,i)=>{ 
         b.textContent = opts[i] || ''; 
-        b.classList.remove('selected'); // reset sélection
+        b.classList.remove('selected');
+        b.setAttribute('aria-pressed','false');
       });
     }
 
     if(idx>=r.count){ showResults(r); }
   });
 
+  // Timer & changements d'index (pas de délai ici : il est géré par advanceAt)
   startTimer(30);
   onValue(ref(db, 'rooms/' + ROOM + '/index'), () => {
-  resetForNext();
-  startTimer(30);
-});
+    resetForNext();
+    startTimer(30);
+  });
 
-// Avance différée : quand advanceAt est atteint, on tente d'avancer en transaction
-let ADV_TIMER = null;
+  // Avance différée : quand advanceAt est atteint, tenter d'avancer en transaction
+  let ADV_TIMER = null;
+  onValue(ref(db, 'rooms/' + ROOM + '/advanceAt'), (s) => {
+    const ts = s.val();
+    if (!ts) { if (ADV_TIMER) clearTimeout(ADV_TIMER); return; }
+    const wait = Math.max(0, ts - Date.now());
+    if (ADV_TIMER) clearTimeout(ADV_TIMER);
 
-onValue(ref(db, 'rooms/' + ROOM + '/advanceAt'), (s) => {
-  const ts = s.val();
-  if (!ts) { if (ADV_TIMER) clearTimeout(ADV_TIMER); return; }
+    ADV_TIMER = setTimeout(async () => {
+      await runTransaction(ref(db, 'rooms/' + ROOM), (room) => {
+        if (!room || !room.advanceAt) return room;
+        if (Date.now() < room.advanceAt) return room;
 
-  const wait = Math.max(0, ts - Date.now());
-  if (ADV_TIMER) clearTimeout(ADV_TIMER);
-
-  ADV_TIMER = setTimeout(async () => {
-    await runTransaction(ref(db, 'rooms/' + ROOM), (room) => {
-      if (!room || !room.advanceAt) return room;
-      // Double-check horloge (si un client est en avance)
-      if (Date.now() < room.advanceAt) return room;
-
-      const idx = room.index || 0;
-      // reset des flags answered pour la prochaine question
-      if (room.players) {
-        for (const pid of Object.keys(room.players)) {
-          room.players[pid].answered = false;
+        const idx = room.index || 0;
+        if (room.players) {
+          for (const pid of Object.keys(room.players)) {
+            room.players[pid].answered = false;
+          }
         }
-      }
-      room.index = idx + 1;
-      delete room.advanceAt; // retire le palier reveal
-
-      return room;
-    });
-  }, wait);
-});
-
+        room.index = idx + 1;
+        delete room.advanceAt;
+        return room;
+      });
+    }, wait);
+  });
 
   // Handlers
-  $('#submitBtn').onclick = submitAnswer;
+  $('#submitBtn').onclick = ()=>submitAnswer();
   $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
 
-  // QCM : surbrillance et lock
+  // QCM : surbrillance + feedback + lock local
   document.querySelectorAll('.mc-btn').forEach(btn=>{
     btn.onclick = ()=>{
       if (CLICK_LOCK) return;
-      // reset visuel sur les 4
       document.querySelectorAll('.mc-btn').forEach(b=>{
         b.classList.remove('selected');
         b.setAttribute('aria-pressed', 'false');
       });
-      // sélection locale
       btn.classList.add('selected');
       btn.setAttribute('aria-pressed', 'true');
-  
+
+      // Feedback immédiat si correction ON
+      if (ROOM_CORR && window.__lastRoomSnapshot){
+        const r = window.__lastRoomSnapshot;
+        const correct = CAPITALS[r.order[r.index]][1];
+        const isGood = btn.textContent.trim().toLowerCase() === correct.trim().toLowerCase();
+        if (isGood){
+          flash(btn, 'flash-ok', 1000);
+        } else {
+          flash(btn, 'flash-bad', 1000);
+          const goodBtn = Array.from(document.querySelectorAll('.mc-btn'))
+            .find(b => b.textContent.trim().toLowerCase() === correct.trim().toLowerCase());
+          if (goodBtn) flash(goodBtn, 'flash-ok', 1000);
+        }
+      }
+
       CLICK_LOCK = true;
       submitAnswer(btn.textContent);
     };
   });
 }
 
-function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
-function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); CLICK_LOCK = false; document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); }); }
+function startTimer(s){
+  clearInterval(TIMER);
+  let t=s;
+  $('#timer').textContent=t;
+  TIMER=setInterval(()=>{
+    t--;
+    $('#timer').textContent=t;
+    if(t<=0){
+      clearInterval(TIMER);
+      autoLock();
+    }
+  },1000);
+}
+
+function resetForNext(){
+  $('#answer').value='';
+  $('#roundStatus').textContent='';
+  $('#correctionLine')?.classList.add('hidden');
+  clearInterval(TIMER);
+  CLICK_LOCK = false;
+  document.querySelectorAll('.mc-btn').forEach(b=>{
+    b.classList.remove('selected');
+    b.setAttribute('aria-pressed', 'false');
+  });
+}
+
+function isCorrectLocal(answer){
+  const r = window.__lastRoomSnapshot;
+  if(!r) return null;
+  const idx = r.index;
+  const qIdx = r.order[idx];
+  const correct = CAPITALS[qIdx][1];
+  const expected = norm(correct);
+  const gotNorm = norm(ALIASES.get(norm(answer)) || answer);
+  return !!(gotNorm && expected===norm(ALIASES.get(gotNorm)||gotNorm));
+}
 
 async function submitAnswer(valueFromMC){
   const ans = (valueFromMC!==undefined) ? valueFromMC : $('#answer').value.trim();
   if(!ans && ROOM_MODE==='text') return autoLock();
+
+  // Feedback immédiat en mode saisie si correction ON
+  if (ROOM_MODE === 'text' && ROOM_CORR){
+    const ok = isCorrectLocal(ans||'');
+    const input = $('#answer');
+    const line  = $('#correctionLine');
+    if (ok){
+      flash(input, 'input-flash-ok', 1000);
+      if (line){ line.classList.add('hidden'); line.textContent=''; }
+    } else {
+      flash(input, 'input-flash-bad', 1000);
+      if (line && window.__lastRoomSnapshot){
+        const r = window.__lastRoomSnapshot;
+        const correct = CAPITALS[r.order[r.index]][1];
+        line.innerHTML = `<span class="good">${correct}</span>`;
+        line.classList.remove('hidden');
+        setTimeout(()=>{ line.classList.add('hidden'); }, 1000);
+      }
+    }
+  }
+
   await lockAndEvaluate(ans||'');
 }
+
 async function autoLock(){ await lockAndEvaluate(''); }
 
 async function lockAndEvaluate(raw){
@@ -268,12 +446,13 @@ async function lockAndEvaluate(raw){
     room.players[ME.id] = me;
 
     const allAnswered = Object.values(room.players).every(p=>p.answered);
-      if (allAnswered) {
-        if (!room.advanceAt) {
-          room.advanceAt = Date.now() + REVEAL_MS;
-        }
+    if (allAnswered) {
+      if (!room.advanceAt) {
+        const extra = room.correction ? 1000 : BASE_REVEAL_MS; // 1s si correction ON
+        room.advanceAt = Date.now() + extra;
       }
-      return room
+    }
+    return room;
   });
 }
 
@@ -289,7 +468,7 @@ function showResults(room){
   $('#colMe').textContent = me?.name || 'Moi';
   $('#colOp').textContent = op?.name || 'Adversaire';
 
-  $('#resSubtitle').textContent = `Mode: ${room.mode==='mc'?'QCM':'Saisie'} • Total: ${room.count} questions`;
+  $('#resSubtitle').textContent = `Mode: ${room.mode==='mc'?'QCM':'Saisie'} • ${room.correction?'Correction ON':'Correction OFF'} • Total: ${room.count} questions`;
   $('#meFinal').innerHTML = `<div class="big">${me?.name||'Moi'}</div><div class="ok" style="font-size:36px;font-weight:800">${me?.score||0} pts</div>`;
   $('#opFinal').innerHTML = `<div class="big">${op.name}</div><div class="ok" style="font-size:36px;font-weight:800">${op.score} pts</div>`;
 

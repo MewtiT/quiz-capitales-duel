@@ -80,7 +80,8 @@ const ALIASES = new Map([
 let ROOM = null;
 let ME = { id: uid(), name: '' };
 let TIMER = null;
-let ROOM_MODE = 'text'; // 'text' | 'mc'
+let CLICK_LOCK = false; // empêche d'envoyer 15 fois la même réponse localement
+let ROOM_MODE = 'mc'; // 'text' | 'mc'
 
 // ---- MC options (seeded, mêmes pour tous) ----
 function mcOptions(orderIndex, seedBase){
@@ -183,16 +184,17 @@ function startGame(){
   // QCM : surbrillance et lock
   document.querySelectorAll('.mc-btn').forEach(btn=>{
     btn.onclick = ()=>{
+      if (CLICK_LOCK) return;        // ✅ ignore les clics suivants
       document.querySelectorAll('.mc-btn').forEach(b=>b.classList.remove('selected'));
-      btn.classList.add('selected');
-      submitAnswer(btn.textContent);
-      btn.disabled = true;
+      btn.classList.add('selected'); // surbrillance
+      CLICK_LOCK = true;             // on verrouille localement (mais SANS disable)
+      submitAnswer(btn.textContent); // envoie la réponse
     };
   });
 }
 
 function startTimer(s){ clearInterval(TIMER); let t=s; $('#timer').textContent=t; TIMER=setInterval(()=>{ t--; $('#timer').textContent=t; if(t<=0){ clearInterval(TIMER); autoLock(); } },1000); }
-function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); b.disabled=false; }); }
+function resetForNext(){ $('#answer').value=''; $('#roundStatus').textContent=''; clearInterval(TIMER); CLICK_LOCK = false; document.querySelectorAll('.mc-btn').forEach(b=>{ b.classList.remove('selected'); }); }
 
 async function submitAnswer(valueFromMC){
   const ans = (valueFromMC!==undefined) ? valueFromMC : $('#answer').value.trim();

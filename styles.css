@@ -69,4 +69,21 @@ th{color:#cbd5e1;text-align:left}
   border-color: rgba(239,68,68,.9);
   box-shadow: 0 0 0 2px rgba(239,68,68,.35), 0 6px 18px rgba(239,68,68,.22) inset;
 }
+/* Multi-select propre pour Régions */
+#regionSelect {
+  min-width: 220px;
+  max-width: 320px;
+  height: 9.5rem;           /* ~5 lignes visibles */
+  background: #0b1220;
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  padding: 8px;
+}
+#regionSelect option {
+  padding: 6px 8px;
+}
+#corrSelect {
+  min-width: 160px;
+}
 

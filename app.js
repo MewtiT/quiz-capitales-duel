@@ -175,7 +175,13 @@ function startGame(){
   });
 
   startTimer(30);
-  onValue(ref(db, 'rooms/'+ROOM+'/index'), ()=>{ resetForNext(); startTimer(30); });
+  onValue(ref(db, 'rooms/'+ROOM+'/index'), ()=>{
+  setTimeout(()=>{ 
+    resetForNext(); 
+    startTimer(30); 
+  }, 700); // pause de 0,7 s pour laisser voir l'état "selected"
+});
+
 
   // Handlers
   $('#submitBtn').onclick = submitAnswer;

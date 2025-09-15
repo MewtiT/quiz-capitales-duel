@@ -23,6 +23,7 @@ const rand = (seed => () => (seed = (seed*9301+49297)%233280, seed/233280));
 const seededShuffle = (arr, seed) => { const r = rand(seed); const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(r()* (i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 const code = () => ($('#roomId').value||'').replace(/\W/g,'').toUpperCase();
 const uid  = () => localStorage.getItem('uid') || (localStorage.setItem('uid', crypto.randomUUID()), localStorage.getItem('uid'));
+const REVEAL_MS = 700;
 
 // ===== Data =====
 const CAPITALS = [
@@ -166,7 +167,6 @@ function startGame(){
       const opts = mcOptions(r.order[idx], r.seed);
       document.querySelectorAll('.mc-btn').forEach((b,i)=>{ 
         b.textContent = opts[i] || ''; 
-        b.disabled = false; 
         b.classList.remove('selected'); // reset sélection
       });
     }
@@ -175,11 +175,40 @@ function startGame(){
   });
 
   startTimer(30);
-  onValue(ref(db, 'rooms/'+ROOM+'/index'), ()=>{
-  setTimeout(()=>{ 
-    resetForNext(); 
-    startTimer(30); 
-  }, 700); // pause de 0,7 s pour laisser voir l'état "selected"
+  onValue(ref(db, 'rooms/' + ROOM + '/index'), () => {
+  resetForNext();
+  startTimer(30);
+});
+
+// Avance différée : quand advanceAt est atteint, on tente d'avancer en transaction
+let ADV_TIMER = null;
+
+onValue(ref(db, 'rooms/' + ROOM + '/advanceAt'), (s) => {
+  const ts = s.val();
+  if (!ts) { if (ADV_TIMER) clearTimeout(ADV_TIMER); return; }
+
+  const wait = Math.max(0, ts - Date.now());
+  if (ADV_TIMER) clearTimeout(ADV_TIMER);
+
+  ADV_TIMER = setTimeout(async () => {
+    await runTransaction(ref(db, 'rooms/' + ROOM), (room) => {
+      if (!room || !room.advanceAt) return room;
+      // Double-check horloge (si un client est en avance)
+      if (Date.now() < room.advanceAt) return room;
+
+      const idx = room.index || 0;
+      // reset des flags answered pour la prochaine question
+      if (room.players) {
+        for (const pid of Object.keys(room.players)) {
+          room.players[pid].answered = false;
+        }
+      }
+      room.index = idx + 1;
+      delete room.advanceAt; // retire le palier reveal
+
+      return room;
+    });
+  }, wait);
 });
 
 
@@ -239,11 +268,12 @@ async function lockAndEvaluate(raw){
     room.players[ME.id] = me;
 
     const allAnswered = Object.values(room.players).every(p=>p.answered);
-    if(allAnswered){
-      for(const pid of Object.keys(room.players)) room.players[pid].answered=false;
-      room.index = idx+1;
-    }
-    return room;
+      if (allAnswered) {
+        if (!room.advanceAt) {
+          room.advanceAt = Date.now() + REVEAL_MS;
+        }
+      }
+      return room
   });
 }
 

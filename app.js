@@ -136,7 +136,7 @@ const REGION_OF = new Map([
   ["Salomon (Îles)","Océanie"],["Tonga","Océanie"],["Tuvalu","Océanie"],["Vanuatu","Océanie"]
 ]);
 
-// (Optionnel) Vérif de couverture
+
 (function checkRegionCoverage(){
   const missing = CAPITALS.filter(([c])=>!REGION_OF.has(c)).map(([c])=>c);
   if(missing.length) console.warn("Région manquante pour:", missing);
@@ -168,12 +168,6 @@ function rebuildQuestionCountOptions(poolLen){
   sel.insertAdjacentHTML('beforeend', `<option value="all">Toutes (${poolLen})</option>`);
 }
 
-function refreshCountForRegions(){
-  const pool = filterByRegions(selectedRegions());
-  rebuildQuestionCountOptions(pool.length);
-  updateRegionSummary();
-}
-
 // --- Regions picker helpers ---
 function selectedRegions(){
   return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
@@ -183,6 +177,12 @@ function updateRegionSummary(){
   const el = document.getElementById('regionSummary');
   el.textContent = regs.length === 5 ? 'Toutes' : (regs.length ? regs.join(', ') : 'Aucune');
 }
+function refreshCountForRegions(){
+  const pool = filterByRegions(selectedRegions());
+  rebuildQuestionCountOptions(pool.length);
+  updateRegionSummary();
+}
+
 // keep menu open when clicking inside; close when clicking outside
 (() => {
   const picker = document.getElementById('regionPicker');
@@ -191,13 +191,12 @@ function updateRegionSummary(){
   document.addEventListener('click', e => {
     if (!picker.contains(e.target)) picker.removeAttribute('open');
   });
-  // react to checkbox changes
   document.querySelectorAll('.regionChk').forEach(chk=>{
-    chk.addEventListener('change', () => { updateRegionSummary(); refreshCountForRegions(); });
+    chk.addEventListener('change', refreshCountForRegions);
   });
-  updateRegionSummary(); // initial
+  // ✅ important : remplir le sélecteur de questions au chargement
+  refreshCountForRegions();
 })();
-
 
 // ===== Local state =====
 let ROOM = null;
@@ -206,6 +205,7 @@ let TIMER = null;
 let CLICK_LOCK = false;
 let ROOM_MODE = 'text'; // 'text' | 'mc'
 let ROOM_CORR = false;
+let CUR_QIDX = -1; // évite reset inutile
 
 // ===== UI events =====
 $('#createBtn').onclick = async () => {
@@ -215,13 +215,8 @@ $('#createBtn').onclick = async () => {
   const mode = $('#modeSelect').value; ROOM_MODE = mode;
   const regions = selectedRegions();
   const pool = filterByRegions(regions);
+  if (pool.length === 0) { alert('Sélectionne au moins une région.'); return; }
 
-  // ✅ garde-fou : au moins une région
-  if (pool.length === 0) {
-    alert('Sélectionne au moins une région.');
-    return;
-  }
-  
   const countSelVal = $('#questionCount').value;
   const count = countSelVal==='all' ? pool.length : parseInt(countSelVal,10);
 
@@ -262,7 +257,7 @@ $('#joinBtn').onclick = async () => {
   enterLobby(data.count, ROOM_MODE, ROOM_CORR, data.regions || []);
 };
 
-function enterLobby(count, mode, correction, regions){
+function enterLobby(count, mode, correction){
   $('#setup').classList.remove('grid');
   $('#lobby').classList.remove('hidden');
   $('#lobbyRoom').textContent = ROOM;
@@ -280,8 +275,6 @@ function enterLobby(count, mode, correction, regions){
   $('#startBtn').onclick = async ()=>{ await update(ref(db, 'rooms/'+ROOM), { started:true, index:0 }); };
 }
 
-let CUR_QIDX = -1; // pour ne pas réinitialiser la sélection si la question ne change pas
-
 function startGame(){
   $('#setup').classList.add('hidden');
   $('#game').classList.remove('hidden');
@@ -292,21 +285,20 @@ function startGame(){
     if(ROOM_MODE==='mc'){ $('#textZone').classList.add('hidden'); $('#mcZone').classList.remove('hidden'); }
     else { $('#mcZone').classList.add('hidden'); $('#textZone').classList.remove('hidden'); }
   });
-  onValue(ref(db, 'rooms/'+ROOM+'/correction'), (s)=>{ ROOM_CORR = !!s.val(); });
+  onValue(ref(db, 'rooms/'+ROOM+'/correction'), (s)=>{ ROOM_CORR = !!(s.val()); });
 
-  onValue(ref(db, 'rooms/'+ROOM), s=>{
+  onValue(ref(db, 'rooms/'+ROOM'), s=>{
     const r = s.val(); if(!r) return;
     window.__lastRoomSnapshot = r;
-  
+
     const idx = r.index;
     $('#qTotal').textContent = r.count;
     $('#qIndex').textContent = Math.min(idx+1, r.count);
-  
+
     const newQIdx = r.order[idx];
     const pair = CAPITALS[newQIdx] || [];
     $('#country').textContent = pair[0] || '';
-  
-    // ⚠️ on ne réinitialise les boutons QUE si la question a changé
+
     if (ROOM_MODE==='mc' && newQIdx !== CUR_QIDX && newQIdx !== undefined){
       const opts = mcOptions(newQIdx, r.seed);
       document.querySelectorAll('.mc-btn').forEach((b,i)=>{
@@ -316,19 +308,17 @@ function startGame(){
       });
     }
     CUR_QIDX = newQIdx;
-  
+
     if(idx>=r.count){ showResults(r); }
   });
 
-
-  // Timer & changements d'index (pas de délai ici : il est géré par advanceAt)
   startTimer(30);
   onValue(ref(db, 'rooms/' + ROOM + '/index'), () => {
     resetForNext();
     startTimer(30);
   });
 
-  // Avance différée : quand advanceAt est atteint, tenter d'avancer en transaction
+  // Avance différée
   let ADV_TIMER = null;
   onValue(ref(db, 'rooms/' + ROOM + '/advanceAt'), (s) => {
     const ts = s.val();
@@ -358,49 +348,41 @@ function startGame(){
   $('#submitBtn').onclick = ()=>submitAnswer();
   $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
 
+  // ✅ Handler QCM propre (une seule fois, pas d'imbrication)
   document.querySelectorAll('.mc-btn').forEach(btn=>{
-  btn.onclick = ()=>{
-    if (CLICK_LOCK) return;
+    btn.onclick = ()=>{
+      if (CLICK_LOCK) return;
 
-    // QCM : surbrillance + feedback + lock local
-    document.querySelectorAll('.mc-btn').forEach(btn=>{
-      btn.onclick = ()=>{
-        if (CLICK_LOCK) return;
-    
-        const buttons = Array.from(document.querySelectorAll('.mc-btn'));
-        // reset styles
-        buttons.forEach(b=>{
-          b.classList.remove('selected','correct','wrong');
-          b.setAttribute('aria-pressed','false');
-        });
-    
-        const label = btn.textContent.trim().toLowerCase();
-        btn.setAttribute('aria-pressed','true');
-    
-        // Mode SANS correction → juste le bleu "selected"
-        if (!ROOM_CORR) {
-          btn.classList.add('selected');
+      const buttons = Array.from(document.querySelectorAll('.mc-btn'));
+      // reset visuel
+      buttons.forEach(b=>{
+        b.classList.remove('selected','correct','wrong');
+        b.setAttribute('aria-pressed','false');
+      });
+
+      const label = btn.textContent.trim().toLowerCase();
+      btn.setAttribute('aria-pressed','true');
+
+      if (!ROOM_CORR) {
+        // Sans correction → juste la sélection bleue
+        btn.classList.add('selected');
+      } else if (window.__lastRoomSnapshot) {
+        // Avec correction → rouge/vert + marquer la bonne
+        const r = window.__lastRoomSnapshot;
+        const correctTxt = CAPITALS[r.order[r.index]][1].trim().toLowerCase();
+        if (label === correctTxt) {
+          btn.classList.add('correct');
         } else {
-          // Mode AVEC correction → rouge/vert
-          if (window.__lastRoomSnapshot) {
-            const r = window.__lastRoomSnapshot;
-            const correctTxt = CAPITALS[r.order[r.index]][1].trim().toLowerCase();
-            if (label === correctTxt) {
-              // bonne réponse → VERT
-              btn.classList.add('correct');
-            } else {
-              // mauvaise → ROUGE sur le choix, VERT sur la bonne
-              btn.classList.add('wrong');
-              const goodBtn = buttons.find(b => b.textContent.trim().toLowerCase() === correctTxt);
-              if (goodBtn) goodBtn.classList.add('correct');
-            }
-          }
+          btn.classList.add('wrong');
+          const goodBtn = buttons.find(b => b.textContent.trim().toLowerCase() === correctTxt);
+          if (goodBtn) goodBtn.classList.add('correct');
         }
-    
-        CLICK_LOCK = true;
-        submitAnswer(btn.textContent);
-      };
-    });
+      }
+
+      CLICK_LOCK = true;
+      submitAnswer(btn.textContent);
+    };
+  });
 }
 
 function startTimer(s){
@@ -511,7 +493,6 @@ function showResults(room){
   const others = Object.entries(room.players||{}).filter(([id])=>id!==ME.id).map(([,p])=>p);
   const op = others[0]||{name:'Adversaire',score:0,history:[]};
 
-  // Entêtes personnalisées
   $('#colMe').textContent = me?.name || 'Moi';
   $('#colOp').textContent = op?.name || 'Adversaire';
 

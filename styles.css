@@ -108,57 +108,48 @@ select.compact {
   min-width: 220px;
 }
 
-/* ===== Régions: dropdown multi-choix bien aligné ===== */
+/* --- Regions dropdown (single column, tidy) --- */
 .picker{
-  position: relative;
-  min-width: 260px;
+  position:relative;
+  display:inline-block;          /* doesn't stretch and won't cover next selects */
+  width: 220px;                  /* compact closed size */
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  background:rgba(255,255,255,.03);
 }
-
 .picker > summary{
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
+  list-style:none;
+  cursor:pointer;
+  padding:8px 12px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  user-select:none;
 }
 .picker > summary::-webkit-details-marker{ display:none; }
 .picker[open] > summary{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
 
-.summary-text{ font-weight:600; color:#e5e7eb; }
-
-/* Menu déroulant */
-.picker .picker-menu{
-  border: 1px solid rgba(255,255,255,.08);
-  border-top: 0;
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-  background: rgba(3,6,15,.85);
-  padding: 10px 12px 14px;
-
-  /* === Alignement propre en 3 colonnes === */
-  display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 10px 28px;               /* espace lignes/colonnes */
-  justify-items: start;         /* texte calé à gauche */
-  align-items: center;          /* vertical OK */
-  text-align: left;
+/* the menu overlays (so it doesn't push layout or block the next <select>) */
+.picker-menu{
+  position:absolute;
+  z-index:30;
+  left:0; top:100%;
+  width: 260px;                  /* expands when open */
+  max-height: 260px; overflow:auto;
+  padding:10px 12px;
+  background: rgba(2,6,23,.95);
+  border:1px solid rgba(255,255,255,.12);
+  border-top:0; border-bottom-left-radius:10px; border-bottom-right-radius:10px;
+  display:flex; flex-direction:column; gap:10px;
+  box-shadow:0 10px 24px rgba(0,0,0,.35);
 }
 
-.picker .picker-menu label{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #cbd5e1;
-  white-space: nowrap;          /* empêche les retours bizarres */
+/* label + checkbox aligned on one line */
+.picker-menu label{
+  display:flex; align-items:center; gap:8px;
+  font-size:14px; color:#cbd5e1; white-space:nowrap;
+}
+.picker-menu input[type="checkbox"]{
+  inline-size:16px; block-size:16px; margin:0;
 }
 
-.picker .picker-menu input[type="checkbox"]{
-  inline-size: 16px;
-  block-size: 16px;
-}
+/* compact selects next to the picker */
+select.compact{ min-width: 180px; }

@@ -39,12 +39,14 @@
             <select id="modeSelect" title="Mode de jeu" class="compact">
               <option value="text">Mode saisie</option>
               <option value="mc">Mode QCM (4 choix)</option>
-            <label class="small muted">Correction :
-              <select id="corrSelect" class="compact">
-                <option value="off">Sans</option>
-                <option value="on">Avec</option>
-              </select>
-            </label>
+            </select>  <!-- ← manquait -->
+            
+            <label for="corrSelect" class="small muted" style="align-self:center">Correction :</label>
+            <select id="corrSelect" class="compact">
+              <option value="off">Sans</option>
+              <option value="on">Avec</option>
+            </select>
+
 
             <button id="createBtn" class="primary">Créer le salon</button>
             <button id="joinBtn">Rejoindre</button>

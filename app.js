@@ -292,7 +292,7 @@ function startGame(){
   });
   onValue(ref(db, 'rooms/'+ROOM+'/correction'), (s)=>{ ROOM_CORR = !!(s.val()); });
 
-  onValue(ref(db, 'rooms/'+ROOM'), s=>{
+  onValue(ref(db, 'rooms/'+ROOM), s=>{
     const r = s.val(); if(!r) return;
     window.__lastRoomSnapshot = r;
 

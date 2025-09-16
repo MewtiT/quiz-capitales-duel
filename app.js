@@ -273,6 +273,8 @@ function enterLobby(count, mode, correction, regions){
   $('#startBtn').onclick = async ()=>{ await update(ref(db, 'rooms/'+ROOM), { started:true, index:0 }); };
 }
 
+let CUR_QIDX = -1; // pour ne pas réinitialiser la sélection si la question ne change pas
+
 function startGame(){
   $('#setup').classList.add('hidden');
   $('#game').classList.remove('hidden');
@@ -287,27 +289,30 @@ function startGame(){
 
   onValue(ref(db, 'rooms/'+ROOM), s=>{
     const r = s.val(); if(!r) return;
-    window.__lastRoomSnapshot = r; // pour l'éval locale
+    window.__lastRoomSnapshot = r;
+  
     const idx = r.index;
-
     $('#qTotal').textContent = r.count;
     $('#qIndex').textContent = Math.min(idx+1, r.count);
-
-    const pair = CAPITALS[r.order[idx]] || [];
+  
+    const newQIdx = r.order[idx];
+    const pair = CAPITALS[newQIdx] || [];
     $('#country').textContent = pair[0] || '';
-
-    // Remplir QCM + reset visuel
-    if(ROOM_MODE==='mc' && r.order[idx]!==undefined){
-      const opts = mcOptions(r.order[idx], r.seed);
-      document.querySelectorAll('.mc-btn').forEach((b,i)=>{ 
-        b.textContent = opts[i] || ''; 
-        b.classList.remove('selected');
+  
+    // ⚠️ on ne réinitialise les boutons QUE si la question a changé
+    if (ROOM_MODE==='mc' && newQIdx !== CUR_QIDX && newQIdx !== undefined){
+      const opts = mcOptions(newQIdx, r.seed);
+      document.querySelectorAll('.mc-btn').forEach((b,i)=>{
+        b.textContent = opts[i] || '';
+        b.classList.remove('selected','correct','wrong');
         b.setAttribute('aria-pressed','false');
       });
     }
-
+    CUR_QIDX = newQIdx;
+  
     if(idx>=r.count){ showResults(r); }
   });
+
 
   // Timer & changements d'index (pas de délai ici : il est géré par advanceAt)
   startTimer(30);
@@ -346,34 +351,41 @@ function startGame(){
   $('#submitBtn').onclick = ()=>submitAnswer();
   $('#answer').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
 
-  // QCM : surbrillance + feedback + lock local
   document.querySelectorAll('.mc-btn').forEach(btn=>{
-    btn.onclick = ()=>{
-      if (CLICK_LOCK) return;
-      document.querySelectorAll('.mc-btn').forEach(b=>{
-        b.classList.remove('selected');
-        b.setAttribute('aria-pressed', 'false');
+  btn.onclick = ()=>{
+    if (CLICK_LOCK) return;
+
+    // on garde la sélection bleue locale
+    document.querySelectorAll('.mc-btn').forEach(b=>{
+      b.classList.remove('selected','correct','wrong');
+      b.setAttribute('aria-pressed','false');
       });
       btn.classList.add('selected');
-      btn.setAttribute('aria-pressed', 'true');
-
-      // Feedback immédiat si correction ON
+      btn.setAttribute('aria-pressed','true');
+  
+      // Feedback immédiat uniquement si correction ON
       if (ROOM_CORR && window.__lastRoomSnapshot){
         const r = window.__lastRoomSnapshot;
-        const correct = CAPITALS[r.order[r.index]][1];
-        const isGood = norm(btn.textContent) === norm(correct);   // ← ici
-      
-        if (isGood){
-          flash(btn, 'flash-ok', 1000);
+        const correct = CAPITALS[r.order[r.index]][1].trim().toLowerCase();
+  
+        const chosenIsGood = btn.textContent.trim().toLowerCase() === correct;
+        if (chosenIsGood){
+          // vert (correct)
+          btn.classList.remove('selected');
+          btn.classList.add('correct');
         } else {
-          flash(btn, 'flash-bad', 1000);
+          // rouge sur le choix, vert sur la bonne réponse
+          btn.classList.remove('selected');
+          btn.classList.add('wrong');
           const goodBtn = Array.from(document.querySelectorAll('.mc-btn'))
-            .find(b => norm(b.textContent) === norm(correct));     // ← et ici
-          if (goodBtn) flash(goodBtn, 'flash-ok', 1000);
+            .find(b => b.textContent.trim().toLowerCase() === correct);
+          if (goodBtn){
+            goodBtn.classList.remove('selected');
+            goodBtn.classList.add('correct');
+          }
         }
       }
-
-
+  
       CLICK_LOCK = true;
       submitAnswer(btn.textContent);
     };

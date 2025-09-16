@@ -89,7 +89,7 @@ th{color:#cbd5e1;text-align:left}
 /* Selects compacts */
 select.compact { padding: 8px 12px; min-width: 180px; }
 
-/* ====== Regions picker — compact & aligné ====== */
+/* ====== Regions picker — compact & aligné (patch) ====== */
 .picker{
   position: relative;
   display: inline-block;
@@ -109,50 +109,48 @@ select.compact { padding: 8px 12px; min-width: 180px; }
 }
 .picker > summary::-webkit-details-marker{ display:none; }
 .picker > summary .summary-text{ font-weight: 600; color: #e5e7eb; }
-
-/* ouvre sans “casser” les arrondis du bas */
 .picker[open] > summary{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
 
-/* Menu déroulant : overlay compact, fond opaque, largeur auto */
 .picker-menu{
   position: absolute;
   z-index: 60;
   top: calc(100% + 4px);
   left: 0;
-  min-width: 100%;          /* au moins la largeur du résumé */
-  max-width: 280px;         /* pas trop large pour 5 lignes */
+  min-width: 100%;
+  max-width: 280px;
   max-height: 260px;
   overflow: auto;
   padding: 8px;
-  background: #020617;      /* opaque → pas de texte qui “transperce” */
+  background: #020617;
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 10px;
   box-shadow: 0 12px 28px rgba(0,0,0,.40);
 }
 
-/* Lignes : checkbox parfaitement alignée à gauche + texte à droite */
 .picker-menu label{
-  display: grid;
-  grid-template-columns: 18px 1fr; /* cb | texte */
+  display: flex;
+  flex-direction: row;          /* case à gauche, texte à droite */
+  justify-content: flex-start;
   align-items: center;
-  column-gap: 10px;
-  padding: 10px 15px;         /* compact */
-  border-radius: 6px;
-  color: #e5e7eb;
-  font-size: 14px;
-  white-space: nowrap;
-}
-.picker-menu label:hover{
-  background: rgba(255,255,255,.06);
+  gap: 8px;                     /* espace case–texte */
+  padding: 6px 4px;             /* ↑ zone cliquable plus grande */
   cursor: pointer;
 }
+.picker-menu label > input[type="checkbox"]{
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #f97316;        /* cohérent avec tes switches orange */
+}
+.picker-menu label > span{ line-height: 1.2; }
+
+.picker-menu label:hover{ background: rgba(255,255,255,.06); }
 .picker-menu label:focus-within{
   outline: 2px solid rgba(59,130,246,.45);
   outline-offset: 2px;
 }
 
-/* Checkbox taille fixe + couleur d’accent (orange) */
-.picker-menu input[type="checkbox"]{
-  width: 16px; height: 16px; margin: 0;
-  accent-color: #1560ce; /* optionnel, garde ton orange */
+/* Mobile: le picker prend toute la largeur */
+@media (max-width: 520px){
+  .picker{ width: 100%; max-width: none; }
+  .picker-menu{ width: 100%; max-width: none; }
 }

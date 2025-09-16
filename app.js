@@ -355,41 +355,45 @@ function startGame(){
   btn.onclick = ()=>{
     if (CLICK_LOCK) return;
 
-    // on garde la sélection bleue locale
-    document.querySelectorAll('.mc-btn').forEach(b=>{
-      b.classList.remove('selected','correct','wrong');
-      b.setAttribute('aria-pressed','false');
-      });
-      btn.classList.add('selected');
-      btn.setAttribute('aria-pressed','true');
-  
-      // Feedback immédiat uniquement si correction ON
-      if (ROOM_CORR && window.__lastRoomSnapshot){
-        const r = window.__lastRoomSnapshot;
-        const correct = CAPITALS[r.order[r.index]][1].trim().toLowerCase();
-  
-        const chosenIsGood = btn.textContent.trim().toLowerCase() === correct;
-        if (chosenIsGood){
-          // vert (correct)
-          btn.classList.remove('selected');
-          btn.classList.add('correct');
+    // QCM : surbrillance + feedback + lock local
+    document.querySelectorAll('.mc-btn').forEach(btn=>{
+      btn.onclick = ()=>{
+        if (CLICK_LOCK) return;
+    
+        const buttons = Array.from(document.querySelectorAll('.mc-btn'));
+        // reset styles
+        buttons.forEach(b=>{
+          b.classList.remove('selected','correct','wrong');
+          b.setAttribute('aria-pressed','false');
+        });
+    
+        const label = btn.textContent.trim().toLowerCase();
+        btn.setAttribute('aria-pressed','true');
+    
+        // Mode SANS correction → juste le bleu "selected"
+        if (!ROOM_CORR) {
+          btn.classList.add('selected');
         } else {
-          // rouge sur le choix, vert sur la bonne réponse
-          btn.classList.remove('selected');
-          btn.classList.add('wrong');
-          const goodBtn = Array.from(document.querySelectorAll('.mc-btn'))
-            .find(b => b.textContent.trim().toLowerCase() === correct);
-          if (goodBtn){
-            goodBtn.classList.remove('selected');
-            goodBtn.classList.add('correct');
+          // Mode AVEC correction → rouge/vert
+          if (window.__lastRoomSnapshot) {
+            const r = window.__lastRoomSnapshot;
+            const correctTxt = CAPITALS[r.order[r.index]][1].trim().toLowerCase();
+            if (label === correctTxt) {
+              // bonne réponse → VERT
+              btn.classList.add('correct');
+            } else {
+              // mauvaise → ROUGE sur le choix, VERT sur la bonne
+              btn.classList.add('wrong');
+              const goodBtn = buttons.find(b => b.textContent.trim().toLowerCase() === correctTxt);
+              if (goodBtn) goodBtn.classList.add('correct');
+            }
           }
         }
-      }
-  
-      CLICK_LOCK = true;
-      submitAnswer(btn.textContent);
-    };
-  });
+    
+        CLICK_LOCK = true;
+        submitAnswer(btn.textContent);
+      };
+    });
 }
 
 function startTimer(s){
@@ -412,9 +416,10 @@ function resetForNext(){
   $('#correctionLine')?.classList.add('hidden');
   clearInterval(TIMER);
   CLICK_LOCK = false;
+
   document.querySelectorAll('.mc-btn').forEach(b=>{
-    b.classList.remove('selected');
-    b.setAttribute('aria-pressed', 'false');
+    b.classList.remove('selected','correct','wrong');
+    b.setAttribute('aria-pressed','false');
   });
 }
 

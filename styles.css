@@ -135,8 +135,8 @@ select.compact { padding: 8px 12px; min-width: 180px; }
   display: grid;
   grid-template-columns: 18px 1fr; /* cb | texte */
   align-items: center;
-  column-gap: 14px;
-  padding: 10px 6px;         /* compact */
+  column-gap: 10px;
+  padding: 10px 10px;         /* compact */
   border-radius: 6px;
   color: #e5e7eb;
   font-size: 14px;

@@ -22,7 +22,7 @@
             <details id="regionPicker" class="picker">
               <summary>
                 <span class="muted small">Régions :</span>
-                <span id="regionSummary" class="summary-text">Toutes</span>
+                <span id="regionSummary" class="summary-text" aria-live="polite">Toutes</span>
               </summary>
               <div class="picker-menu">
                 <label><input type="checkbox" class="regionChk" value="Afrique" checked><span>Afrique</span></label>
@@ -39,12 +39,12 @@
             <select id="modeSelect" title="Mode de jeu" class="compact">
               <option value="text">Mode saisie</option>
               <option value="mc">Mode QCM (4 choix)</option>
-            </select>
-            <span class="small muted">Correction :</span>
-            <select id="corrSelect" class="compact">
-              <option value="off">Sans</option>
-              <option value="on">Avec</option>
-            </select>
+            <label class="small muted">Correction :
+              <select id="corrSelect" class="compact">
+                <option value="off">Sans</option>
+                <option value="on">Avec</option>
+              </select>
+            </label>
 
             <button id="createBtn" class="primary">Créer le salon</button>
             <button id="joinBtn">Rejoindre</button>

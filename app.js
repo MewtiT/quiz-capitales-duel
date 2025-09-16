@@ -38,26 +38,26 @@ const CAPITALS = [
   ["Autriche","Vienne"],["Azerbaïdjan","Bakou"],["Bahamas","Nassau"],["Bahreïn","Manama"],["Bangladesh","Dacca"],
   ["Barbade","Bridgetown"],["Belgique","Bruxelles"],["Belize","Belmopan"],["Bénin","Porto-Novo"],["Bhoutan","Thimphou"],
   ["Biélorussie","Minsk"],["Birmanie (Myanmar)","Naypyidaw"],["Bolivie","Sucre"],["Bosnie-Herzégovine","Sarajevo"],["Botswana","Gaborone"],
-  ["Brésil","Brasília"],["Brunei","Bandar Seri Begawan"],["Bulgarie","Sofia"],["Burkina Faso","Ouagadougou"],["Burundi","Gitega"],
-  ["Cambodge","Phnom Penh"],["Cameroun","Yaoundé"],["Canada","Ottawa"],["Cap-Vert","Praia"],["Centrafrique","Bangui"],
-  ["Chili","Santiago"],["Chine","Pékin"],["Chypre","Nicosie"],["Colombie","Bogotá"],["Comores","Moroni"],
+  ["Brésil","Brasília"],["Brunei","Bandar Seri Begawan"],["Bulgarie","Sofia"],["Burkina Faso","Ouagadougou"],["Burundi","Gitega"],["Afrique du Sud","Pretoria"],
+  ["Cambodge","Phnom Penh"],["Cameroun","Yaoundé"],["Canada","Ottawa"],["Cap-Vert","Praia"],["Centrafrique","Bangui"],["République dominicaine","Saint-Domingue"],
+  ["Chili","Santiago"],["Chine","Pékin"],["Chypre","Nicosie"],["Colombie","Bogotá"],["Comores","Moroni"],["Allemagne","Berlin"],
   ["Congo (RDC)","Kinshasa"],["Congo (République)","Brazzaville"],["Corée du Nord","Pyongyang"],["Corée du Sud","Séoul"],["Costa Rica","San José"],
   ["Côte d’Ivoire","Yamoussoukro"],["Croatie","Zagreb"],["Cuba","La Havane"],["Danemark","Copenhague"],["Djibouti","Djibouti"],
   ["Dominique","Roseau"],["Égypte","Le Caire"],["Émirats arabes unis","Abou Dabi"],["Équateur","Quito"],["Érythrée","Asmara"],
   ["Espagne","Madrid"],["Estonie","Tallinn"],["Eswatini","Mbabane"],["États-Unis","Washington"],["Éthiopie","Addis-Abeba"],
-  ["Fidji","Suva"],["Finlande","Helsinki"],["France","Paris"],["Gabon","Libreville"],["Gambie","Banjul"],
+  ["Fidji","Suva"],["Finlande","Helsinki"],["France","Paris"],["Gabon","Libreville"],["Gambie","Banjul"],["Saint-Marin","Saint-Marin"],
   ["Géorgie","Tbilissi"],["Ghana","Accra"],["Grèce","Athènes"],["Grenade","Saint George's"],["Guatemala","Guatemala"],
   ["Guinée","Conakry"],["Guinée-Bissau","Bissau"],["Guinée équatoriale","Malabo"],["Guyana","Georgetown"],["Haïti","Port-au-Prince"],
   ["Honduras","Tegucigalpa"],["Hongrie","Budapest"],["Îles Marshall","Delap-Uliga-Darrit"],["Inde","New Delhi"],["Indonésie","Jakarta"],
-  ["Irak","Bagdad"],["Iran","Téhéran"],["Irlande","Dublin"],["Islande","Reykjavik"],["Israël","Jérusalem"],
-  ["Italie","Rome"],["Jamaïque","Kingston"],["Japon","Tokyo"],["Jordanie","Amman"],["Kazakhstan","Astana"],
+  ["Irak","Bagdad"],["Iran","Téhéran"],["Irlande","Dublin"],["Islande","Reykjavik"],["Israël","Jérusalem"],["Taïwan","Taipei"],
+  ["Italie","Rome"],["Jamaïque","Kingston"],["Japon","Tokyo"],["Jordanie","Amman"],["Kazakhstan","Astana"],["Palestine","Ramallah"],
   ["Kenya","Nairobi"],["Kirghizistan","Bichkek"],["Kiribati","Tarawa-Sud"],["Kosovo","Pristina"],["Koweït","Koweït"],
   ["Laos","Vientiane"],["Lesotho","Maseru"],["Lettonie","Riga"],["Liban","Beyrouth"],["Libéria","Monrovia"],
   ["Libye","Tripoli"],["Liechtenstein","Vaduz"],["Lituanie","Vilnius"],["Luxembourg","Luxembourg"],["Macédoine du Nord","Skopje"],
   ["Madagascar","Antananarivo"],["Malaisie","Kuala Lumpur"],["Malawi","Lilongwe"],["Maldives","Malé"],["Mali","Bamako"],
   ["Malte","La Valette"],["Maroc","Rabat"],["Maurice","Port-Louis"],["Mauritanie","Nouakchott"],["Mexique","Mexico"],
   ["Micronésie","Palikir"],["Moldavie","Chisinau"],["Monaco","Monaco"],["Mongolie","Oulan-Bator"],["Monténégro","Podgorica"],
-  ["Mozambique","Maputo"],["Namibie","Windhoek"],["Nauroo","Yaren"],["Népal","Katmandou"],["Nicaragua","Managua"],
+  ["Mozambique","Maputo"],["Namibie","Windhoek"],["Nauru","Yaren"],["Népal","Katmandou"],["Nicaragua","Managua"],
   ["Niger","Niamey"],["Nigeria","Abuja"],["Norvège","Oslo"],["Nouvelle-Zélande","Wellington"],["Oman","Mascate"],
   ["Ouganda","Kampala"],["Ouzbékistan","Tachkent"],["Pakistan","Islamabad"],["Palaos","Ngerulmud"],["Panama","Panama"],
   ["Papouasie-Nouvelle-Guinée","Port Moresby"],["Paraguay","Asuncion"],["Pays-Bas","Amsterdam"],["Pérou","Lima"],["Philippines","Manille"],
@@ -96,7 +96,7 @@ const REGION_OF = new Map([
   ["Namibie","Afrique"],["Niger","Afrique"],["Nigeria","Afrique"],["Ouganda","Afrique"],["Rwanda","Afrique"],
   ["Sao Tomé-et-Principe","Afrique"],["Sénégal","Afrique"],["Seychelles","Afrique"],["Sierra Leone","Afrique"],["Somalie","Afrique"],
   ["Soudan","Afrique"],["Soudan du Sud","Afrique"],["Tanzanie","Afrique"],["Tchad","Afrique"],["Togo","Afrique"],
-  ["Tunisie","Afrique"],["Zambie","Afrique"],["Zimbabwe","Afrique"],
+  ["Tunisie","Afrique"],["Zambie","Afrique"],["Zimbabwe","Afrique"],["Afrique du Sud","Afrique"],
 
   // Amérique
   ["Antigua-et-Barbuda","Amérique"],["Argentine","Amérique"],["Bahamas","Amérique"],["Barbade","Amérique"],["Belize","Amérique"],
@@ -105,7 +105,7 @@ const REGION_OF = new Map([
   ["Guatemala","Amérique"],["Guyana","Amérique"],["Haïti","Amérique"],["Honduras","Amérique"],["Jamaïque","Amérique"],
   ["Mexique","Amérique"],["Nicaragua","Amérique"],["Panama","Amérique"],["Paraguay","Amérique"],["Pérou","Amérique"],
   ["Saint-Christophe-et-Niévès","Amérique"],["Sainte-Lucie","Amérique"],["Saint-Vincent-et-les-Grenadines","Amérique"],["Salvador","Amérique"],
-  ["Suriname","Amérique"],["Trinité-et-Tobago","Amérique"],["Uruguay","Amérique"],["Venezuela","Amérique"],
+  ["Suriname","Amérique"],["Trinité-et-Tobago","Amérique"],["Uruguay","Amérique"],["Venezuela","Amérique"],["République dominicaine","Amérique"],
 
   // Asie
   ["Afghanistan","Asie"],["Arabie saoudite","Asie"],["Arménie","Asie"],["Azerbaïdjan","Asie"],["Bahreïn","Asie"],
@@ -117,7 +117,7 @@ const REGION_OF = new Map([
   ["Népal","Asie"],["Oman","Asie"],["Pakistan","Asie"],["Philippines","Asie"],["Qatar","Asie"],
   ["Singapour","Asie"],["Sri Lanka","Asie"],["Syrie","Asie"],["Tadjikistan","Asie"],["Thaïlande","Asie"],
   ["Timor oriental","Asie"],["Turkménistan","Asie"],["Turquie","Asie"],["Ouzbékistan","Asie"],["Viêt Nam","Asie"],
-  ["Yémen","Asie"],
+  ["Yémen","Asie"],["Taïwan","Asie"],["Palestine","Asie"],
 
   // Europe
   ["Albanie","Europe"],["Andorre","Europe"],["Autriche","Europe"],["Belgique","Europe"],["Biélorussie","Europe"],
@@ -128,11 +128,11 @@ const REGION_OF = new Map([
   ["Malte","Europe"],["Moldavie","Europe"],["Monaco","Europe"],["Monténégro","Europe"],["Norvège","Europe"],
   ["Pays-Bas","Europe"],["Pologne","Europe"],["Portugal","Europe"],["République tchèque","Europe"],["Roumanie","Europe"],
   ["Royaume-Uni","Europe"],["Russie","Europe"],["Serbie","Europe"],["Slovaquie","Europe"],["Slovénie","Europe"],
-  ["Suède","Europe"],["Suisse","Europe"],["Ukraine","Europe"],["Vatican","Europe"],
+  ["Suède","Europe"],["Suisse","Europe"],["Ukraine","Europe"],["Vatican","Europe"],["Allemagne","Europe"],["Saint-Marin","Europe"],
 
   // Océanie
   ["Australie","Océanie"],["Fidji","Océanie"],["Kiribati","Océanie"],["Îles Marshall","Océanie"],["Micronésie","Océanie"],
-  ["Nauroo","Océanie"],["Nouvelle-Zélande","Océanie"],["Palaos","Océanie"],["Papouasie-Nouvelle-Guinée","Océanie"],["Samoa","Océanie"],
+  ["Nauru","Océanie"],["Nouvelle-Zélande","Océanie"],["Palaos","Océanie"],["Papouasie-Nouvelle-Guinée","Océanie"],["Samoa","Océanie"],
   ["Salomon (Îles)","Océanie"],["Tonga","Océanie"],["Tuvalu","Océanie"],["Vanuatu","Océanie"]
 ]);
 

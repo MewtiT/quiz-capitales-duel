@@ -131,3 +131,29 @@ select.compact {
   font-size: 14px; color: #cbd5e1;
 }
 
+/* ===== Picker régions ===== */
+.picker { position: relative; min-width: 260px; }
+.picker > summary {
+  list-style: none; cursor: pointer;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; padding:10px 12px; border-radius:10px;
+  background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
+}
+.picker[open] > summary { border-bottom-left-radius:0; border-bottom-right-radius:0; }
+
+.picker-menu{
+  border:1px solid rgba(255,255,255,.08);
+  border-top:0; border-bottom-left-radius:10px; border-bottom-right-radius:10px;
+  background: rgba(3,6,15,.85);
+  padding:10px 12px;
+  display:grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)); /* 2 colonnes égales */
+  gap:10px 24px;
+  align-items:center;
+}
+.picker-menu label{
+  display:flex; align-items:center; gap:8px; 
+  font-size:14px; color:#cbd5e1; white-space:nowrap;
+}
+.picker-menu input[type="checkbox"]{ inline-size:16px; block-size:16px; }
+.summary-text{ font-weight:600; color:#e5e7eb; }

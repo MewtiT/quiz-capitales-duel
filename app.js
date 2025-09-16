@@ -183,7 +183,6 @@ function refreshCountForRegions(){
   updateRegionSummary();
 }
 
-// keep menu open when clicking inside; close when clicking outside
 (() => {
   const picker = document.getElementById('regionPicker');
   const menu   = picker?.querySelector('.picker-menu');
@@ -191,12 +190,18 @@ function refreshCountForRegions(){
   document.addEventListener('click', e => {
     if (!picker.contains(e.target)) picker.removeAttribute('open');
   });
+  // react to checkbox changes
   document.querySelectorAll('.regionChk').forEach(chk=>{
-    chk.addEventListener('change', refreshCountForRegions);
+    chk.addEventListener('change', () => { 
+      updateRegionSummary(); 
+      refreshCountForRegions(); 
+    });
   });
-  // ✅ important : remplir le sélecteur de questions au chargement
-  refreshCountForRegions();
+
+  updateRegionSummary();       // ← déjà présent
+  refreshCountForRegions();    // ← ajoute-le juste ici
 })();
+
 
 // ===== Local state =====
 let ROOM = null;

@@ -167,18 +167,6 @@ function rebuildQuestionCountOptions(poolLen){
   }
   sel.insertAdjacentHTML('beforeend', `<option value="all">Toutes (${poolLen})</option>`);
 }
-function selectedRegions(){
-  return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
-}
-
-function updateRegionSummary() {
-  const regs = selectedRegions();
-  const txt = regs.length === 0 ? 'Aucune' :
-              regs.length === 5 ? 'Toutes' :
-              regs.join(', ');
-  const span = document.getElementById('regionSummary');
-  if (span) span.textContent = txt;
-}
 
 function refreshCountForRegions(){
   const pool = filterByRegions(selectedRegions());
@@ -186,11 +174,30 @@ function refreshCountForRegions(){
   updateRegionSummary();
 }
 
-// listen to changes on the checkboxes
-document.querySelectorAll('.regionChk').forEach(chk=>{
-  chk.addEventListener('change', refreshCountForRegions);
-});
-refreshCountForRegions(); // initial fill
+// --- Regions picker helpers ---
+function selectedRegions(){
+  return Array.from(document.querySelectorAll('.regionChk:checked')).map(el=>el.value);
+}
+function updateRegionSummary(){
+  const regs = selectedRegions();
+  const el = document.getElementById('regionSummary');
+  el.textContent = regs.length === 5 ? 'Toutes' : (regs.length ? regs.join(', ') : 'Aucune');
+}
+// keep menu open when clicking inside; close when clicking outside
+(() => {
+  const picker = document.getElementById('regionPicker');
+  const menu   = picker?.querySelector('.picker-menu');
+  menu?.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('click', e => {
+    if (!picker.contains(e.target)) picker.removeAttribute('open');
+  });
+  // react to checkbox changes
+  document.querySelectorAll('.regionChk').forEach(chk=>{
+    chk.addEventListener('change', () => { updateRegionSummary(); refreshCountForRegions(); });
+  });
+  updateRegionSummary(); // initial
+})();
+
 
 // ===== Local state =====
 let ROOM = null;
